@@ -20,5 +20,10 @@ class Settings(BaseSettings):
     mongodb_uri: str = ""
     mongodb_db: str = "starboy"
 
+    # Optional: DNS servers for finding the Atlas cluster, e.g. "8.8.8.8,1.1.1.1".
+    # Some phone hotspots and routers can't answer the lookup that a
+    # "mongodb+srv://" address needs. Leave empty to use the computer's own DNS.
+    dns_servers: str = ""
+
 
 settings = Settings()

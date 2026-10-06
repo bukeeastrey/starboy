@@ -1,5 +1,6 @@
 """The connection to MongoDB Atlas (through Motor, the async driver)."""
 
+import dns.resolver  # dnspython, installed together with the MongoDB driver
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 
 from .config import settings
@@ -12,6 +13,11 @@ def connect() -> None:
     """Create the client. This does not talk to Atlas yet; the first query does."""
     global _client
     if settings.mongodb_uri:
+        if settings.dns_servers:
+            # Ask these DNS servers instead of the network's own (see config.py).
+            resolver = dns.resolver.Resolver(configure=False)
+            resolver.nameservers = [s.strip() for s in settings.dns_servers.split(",")]
+            dns.resolver.default_resolver = resolver
         _client = AsyncIOMotorClient(
             settings.mongodb_uri,
             serverSelectionTimeoutMS=5000,  # fail after 5 s rather than hang
