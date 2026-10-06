@@ -1,0 +1,9 @@
+.git
+.env
+CLAUDE.md
+**/.venv
+**/__pycache__
+**/node_modules
+frontend/dist
+backend/data
+backend/model_cache

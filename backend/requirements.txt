@@ -1,0 +1,10 @@
+fastapi
+uvicorn[standard]
+python-multipart
+pydantic>=2
+pydantic-settings
+motor
+httpx
+faster-whisper
+pywebpush
+python-jose

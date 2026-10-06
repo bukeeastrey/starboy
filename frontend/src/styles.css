@@ -1,0 +1,93 @@
+/* Colours live in variables so light and dark mode only change this block. */
+:root {
+  --green: #0e5a3a; /* pitch green */
+  --gold: #f5c518; /* Golden Boot / Star Boy */
+  --bg: #f3f6f4;
+  --card: #ffffff;
+  --text: #14211b;
+  --muted: #5d6b64;
+  --border: #dde5e0;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0b1410;
+    --card: #15221c;
+    --text: #eef4f0;
+    --muted: #9db0a6;
+    --border: #25362d;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  line-height: 1.4;
+}
+
+/* A phone-width column, centred on bigger screens. */
+.app {
+  max-width: 430px;
+  min-height: 100vh;
+  margin: 0 auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+.welcome {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.logo {
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  background: var(--green);
+  font-size: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 0 4px var(--gold);
+}
+
+h1 {
+  margin: 16px 0 4px;
+  font-size: 2.2rem;
+}
+
+.tagline {
+  margin: 0 0 24px;
+  color: var(--muted);
+  font-size: 1.1rem;
+}
+
+.card {
+  width: 100%;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px;
+}
+
+.status {
+  margin: 0;
+}
+
+.badge {
+  padding: 16px 0 8px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.8rem;
+}

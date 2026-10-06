@@ -1,0 +1,19 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Node
+node_modules/
+frontend/dist/
+
+# Runtime data and downloaded models
+backend/data/
+backend/model_cache/
+
+# Secrets / local settings
+.env
+
+# Private project brief (kept on this laptop only)
+CLAUDE.md
