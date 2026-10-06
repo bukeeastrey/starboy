@@ -2,11 +2,13 @@
 :root {
   --green: #0e5a3a; /* pitch green */
   --gold: #f5c518; /* Golden Boot / Star Boy */
+  --red: #c0392b;
   --bg: #f3f6f4;
   --card: #ffffff;
   --text: #14211b;
   --muted: #5d6b64;
   --border: #dde5e0;
+  --link: #0e5a3a;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -16,6 +18,8 @@
     --text: #eef4f0;
     --muted: #9db0a6;
     --border: #25362d;
+    --link: #6fd3a3;
+    --red: #ff8a7a;
   }
 }
 
@@ -31,15 +35,92 @@ body {
   line-height: 1.4;
 }
 
+a {
+  color: var(--link);
+}
+
+h1, h2, h3, p {
+  margin: 0;
+}
+
+h1 {
+  margin: 16px 0 4px;
+  font-size: 2.2rem;
+}
+
+h3 {
+  font-size: 1rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* --- Layout ------------------------------------------------------------ */
+
 /* A phone-width column, centred on bigger screens. */
 .app {
   max-width: 430px;
   min-height: 100vh;
   margin: 0 auto;
-  padding: 16px;
+  padding: 0 16px;
   display: flex;
   flex-direction: column;
 }
+
+.main {
+  flex: 1;
+  padding: 16px 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 -16px;
+  padding: 10px 16px;
+  background: var(--green);
+  color: #fff;
+}
+
+.brand {
+  flex: 1;
+  color: #fff;
+  font-weight: 800;
+  font-size: 1.15rem;
+  text-decoration: none;
+  padding: 10px 0; /* a taller tap target */
+}
+
+.topbar .link-button {
+  color: #fff;
+}
+
+/* Children stacked with the same gap between them. */
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.center {
+  text-align: center;
+}
+
+.muted {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.badge {
+  padding: 16px 0 12px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+/* --- Welcome ----------------------------------------------------------- */
 
 .welcome {
   flex: 1;
@@ -48,6 +129,7 @@ body {
   align-items: center;
   justify-content: center;
   text-align: center;
+  gap: 12px;
 }
 
 .logo {
@@ -62,32 +144,319 @@ body {
   box-shadow: 0 0 0 4px var(--gold);
 }
 
-h1 {
-  margin: 16px 0 4px;
-  font-size: 2.2rem;
-}
-
 .tagline {
-  margin: 0 0 24px;
+  margin-bottom: 12px;
   color: var(--muted);
   font-size: 1.1rem;
 }
+
+/* --- Cards, rows, lists ------------------------------------------------ */
 
 .card {
   width: 100%;
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: 14px;
-  padding: 16px;
+  padding: 14px;
 }
 
-.status {
+.list {
+  list-style: none;
   margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
-.badge {
-  padding: 16px 0 8px;
-  text-align: center;
-  color: var(--muted);
+.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 60px;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.row-icon {
+  font-size: 1.6rem;
+}
+
+/* The middle of a row: a bold line with a muted line under it. */
+.row-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.player-name {
+  font-weight: 700;
+}
+
+.avatar {
+  flex-shrink: 0;
+  border-radius: 50%;
+  color: #fff;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chip {
+  flex-shrink: 0;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--border);
   font-size: 0.8rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.chip.gold {
+  background: var(--gold);
+  color: #14211b;
+}
+
+.chip.in {
+  background: var(--green);
+  color: #fff;
+}
+
+.chip.out {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+
+/* --- Buttons ----------------------------------------------------------- */
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 10px 18px;
+  border: 2px solid var(--green);
+  border-radius: 12px;
+  background: var(--green);
+  color: #fff;
+  font: inherit;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.button.big {
+  width: 100%;
+  min-height: 56px;
+  font-size: 1.1rem;
+}
+
+.button.secondary {
+  background: transparent;
+  color: var(--link);
+  border-color: var(--border);
+}
+
+.button.gold {
+  background: var(--gold);
+  border-color: var(--gold);
+  color: #14211b;
+}
+
+.button.danger {
+  background: transparent;
+  color: var(--red);
+  border-color: var(--border);
+}
+
+.button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* Two buttons side by side, sharing the width. */
+.button-row {
+  display: flex;
+  gap: 8px;
+}
+
+.button-row > * {
+  flex: 1;
+}
+
+.link-button {
+  min-height: 44px;
+  padding: 0 4px;
+  border: none;
+  background: none;
+  color: var(--link);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* --- Forms ------------------------------------------------------------- */
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.form label,
+.form legend {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-weight: 600;
+}
+
+.form label.check {
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  font-weight: 400;
+}
+
+fieldset {
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+legend {
+  padding: 0;
+  margin-bottom: 6px;
+}
+
+input,
+textarea,
+select {
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--card);
+  color: var(--text);
+  font: inherit;
+  font-size: 1rem; /* 16px stops iPhones zooming in on focus */
+}
+
+input[type="checkbox"] {
+  width: 24px;
+  min-height: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  accent-color: var(--green);
+}
+
+.error {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--red);
+  color: var(--red);
+}
+
+/* Pick-one buttons (position, sort order). */
+.choices,
+.sort-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.choice {
+  min-height: 44px;
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--card);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.choice.small {
+  padding: 4px 12px;
+}
+
+.choice.selected {
+  background: var(--green);
+  border-color: var(--green);
+  color: #fff;
+  font-weight: 700;
+}
+
+/* --- Pitch page -------------------------------------------------------- */
+
+.pitch-header {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  margin: -16px -16px 0;
+  padding: 8px 16px 20px;
+  background: var(--green);
+  color: #fff;
+}
+
+.pitch-header a {
+  color: #fff;
+}
+
+.tabs {
+  display: flex;
+  border-bottom: 2px solid var(--border);
+}
+
+.tab {
+  flex: 1;
+  min-height: 48px;
+  margin-bottom: -2px;
+  border: none;
+  border-bottom: 3px solid transparent;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.tab.selected {
+  color: var(--text);
+  border-bottom-color: var(--gold);
+}
+
+/* The three numbers at the end of a player row. */
+.stats {
+  display: flex;
+  gap: 10px;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 34px;
+  color: var(--muted);
+}
+
+.stat strong {
+  font-size: 1.25rem;
+  line-height: 1.1;
+}
+
+.stat small {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+}
+
+.stat.selected {
+  color: var(--text);
 }

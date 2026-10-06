@@ -1,23 +1,38 @@
 """Star Boy backend: the API, plus (once built) the React app itself."""
 
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 
-from . import db
+from . import db, setup
 from .config import FRONTEND_DIST
+from .routes import home, pitches, users
+
+logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
+log = logging.getLogger("starboy")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Runs once when the server starts, and once when it stops.
     db.connect()
+    try:
+        await setup.ensure_indexes()
+        await setup.seed_pitches()
+    except Exception as error:
+        # Keep the server up so /api/health can say what is wrong.
+        log.error("Database setup failed: %s", type(error).__name__)
     yield
     db.close()
 
 
 app = FastAPI(title="Star Boy", lifespan=lifespan)
+
+app.include_router(users.router)
+app.include_router(pitches.router)
+app.include_router(home.router)
 
 
 @app.get("/api/health")

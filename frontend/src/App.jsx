@@ -1,44 +1,94 @@
 import { useEffect, useState } from "react";
 import { api } from "./api.js";
+import { Avatar, Loading } from "./components.jsx";
+import { Link, matchRoute, navigate, usePath } from "./router.jsx";
+import Home from "./pages/Home.jsx";
+import Pitch from "./pages/Pitch.jsx";
+import Pitches from "./pages/Pitches.jsx";
+import SignIn from "./pages/SignIn.jsx";
+import SignUp from "./pages/SignUp.jsx";
+import Welcome from "./pages/Welcome.jsx";
 
-// What to show for each answer from /api/health.
-const DB_MESSAGES = {
-  ok: "Database connected ✅",
-  not_configured: "Database not set up yet (add MONGODB_URI to .env)",
-  error: "Can't reach the database ❌",
-};
+// The screens for signed-in players. ":id" parts are passed to the screen as props.
+const ROUTES = [
+  ["/", Home],
+  ["/pitches", Pitches],
+  ["/pitch/:id", Pitch],
+];
+
+// Where to go after signing in (e.g. the game link someone sent on WhatsApp).
+const NEXT_KEY = "starboy_next";
 
 export default function App() {
-  // null = still checking, otherwise the JSON from /api/health (or an error).
-  const [health, setHealth] = useState(null);
+  const path = usePath();
+  // undefined = still checking, null = signed out, otherwise the user.
+  const [user, setUser] = useState(undefined);
 
   useEffect(() => {
-    api("/api/health")
-      .then(setHealth)
-      .catch(() => setHealth({ status: "down" }));
+    api("/api/me")
+      .then(setUser)
+      .catch(() => setUser(null));
   }, []);
 
-  let statusText = "Checking the server…";
-  if (health) {
-    statusText =
-      health.status === "ok"
-        ? `Server is up ✅ · ${DB_MESSAGES[health.db] ?? health.db}`
-        : "Can't reach the server ❌";
+  function onSignedIn(newUser) {
+    setUser(newUser);
+    const next = sessionStorage.getItem(NEXT_KEY) || "/";
+    sessionStorage.removeItem(NEXT_KEY);
+    navigate(next, { replace: true });
+  }
+
+  async function signOut() {
+    await api("/api/auth/signout", { method: "POST" }).catch(() => {});
+    setUser(null);
+    navigate("/");
+  }
+
+  let screen;
+  if (user === undefined) {
+    screen = <Loading />;
+  } else if (user === null) {
+    if (path === "/signup") screen = <SignUp onSignedIn={onSignedIn} />;
+    else if (path === "/signin") screen = <SignIn onSignedIn={onSignedIn} />;
+    else {
+      // Remember the page they wanted, then show the welcome screen.
+      if (path !== "/") sessionStorage.setItem(NEXT_KEY, path);
+      screen = <Welcome invited={path.startsWith("/game/")} />;
+    }
+  } else {
+    screen = <NotFound />;
+    for (const [pattern, Screen] of ROUTES) {
+      const params = matchRoute(pattern, path);
+      if (params) {
+        // key = path, so moving between two pitches starts a fresh screen.
+        screen = <Screen key={path} user={user} {...params} />;
+        break;
+      }
+    }
   }
 
   return (
     <div className="app">
-      <main className="welcome">
-        <div className="logo">⭐</div>
-        <h1>Star Boy</h1>
-        <p className="tagline">Comot for room. Come play ball. ⚽</p>
-        <div className="card">
-          <p className="status">{statusText}</p>
-        </div>
-      </main>
+      {user && (
+        <header className="topbar">
+          <Link to="/" className="brand">⭐ Star Boy</Link>
+          <button className="link-button" onClick={signOut}>Sign out</button>
+          <Avatar user={user} size={34} />
+        </header>
+      )}
+      <main className="main">{screen}</main>
       <footer className="badge">
         AI: Gemma + Whisper, open models running on Star Boy's own server
       </footer>
+    </div>
+  );
+}
+
+function NotFound() {
+  return (
+    <div className="center">
+      <h2>Offside! 🚩</h2>
+      <p className="muted">We can't find that page.</p>
+      <Link to="/" className="button">Back home</Link>
     </div>
   );
 }
