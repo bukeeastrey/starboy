@@ -85,6 +85,9 @@ async def get_pitch(pitch_id: str, user: dict = Depends(current_user)):
     if not pitch:
         raise HTTPException(404, "We can't find that pitch.")
 
+    # Imported here because games.py also imports from this file.
+    from .games import pitch_games
+
     players = await stats.pitch_players(pitch["_id"])
     my_id = str(user["_id"])
     return {
@@ -92,6 +95,7 @@ async def get_pitch(pitch_id: str, user: dict = Depends(current_user)):
         "player_count": len(players),
         "registered": any(player["id"] == my_id for player in players),
         "players": players,
+        "games": await pitch_games(pitch["_id"], user),
     }
 
 

@@ -393,6 +393,24 @@ input[type="checkbox"] {
   font-weight: 700;
 }
 
+/* --- Games ------------------------------------------------------------- */
+
+/* A card that should catch the eye (your next game, "tell the crew"). */
+.highlight {
+  border: 2px solid var(--gold);
+}
+
+.next-game {
+  display: flex;
+  flex-direction: column;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.next-game strong {
+  font-size: 1.5rem;
+}
+
 /* --- Pitch page -------------------------------------------------------- */
 
 .pitch-header {

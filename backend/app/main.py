@@ -8,7 +8,7 @@ from fastapi.responses import FileResponse
 
 from . import db, setup
 from .config import FRONTEND_DIST
-from .routes import home, pitches, users
+from .routes import games, home, pitches, users
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
 log = logging.getLogger("starboy")
@@ -32,6 +32,7 @@ app = FastAPI(title="Star Boy", lifespan=lifespan)
 
 app.include_router(users.router)
 app.include_router(pitches.router)
+app.include_router(games.router)
 app.include_router(home.router)
 
 

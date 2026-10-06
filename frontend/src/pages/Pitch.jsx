@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { api } from "../api.js";
 import { Avatar, ErrorNote, Loading, PlayerName, useLoad } from "../components.jsx";
+import { GameRow } from "../game-parts.jsx";
+import { Link } from "../router.jsx";
 
 const TABS = ["Games", "Players"];
 
@@ -68,8 +70,21 @@ export default function Pitch({ id, user }) {
   );
 }
 
-function GamesTab() {
-  return <p className="card muted">No games here yet.</p>;
+function GamesTab({ pitch }) {
+  const { upcoming, recent } = pitch.games;
+  return (
+    <div className="stack">
+      <Link to={`/pitch/${pitch.id}/new-game`} className="button">+ New game</Link>
+
+      {upcoming.length === 0 && (
+        <p className="card muted">No game set yet. Na you go start am? 👀</p>
+      )}
+      {upcoming.map((game) => <GameRow key={game.id} game={game} />)}
+
+      {recent.length > 0 && <h3>Recent games</h3>}
+      {recent.map((game) => <GameRow key={game.id} game={game} />)}
+    </div>
+  );
 }
 
 function PlayersTab({ players, me }) {

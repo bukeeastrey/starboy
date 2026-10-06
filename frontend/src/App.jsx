@@ -2,7 +2,9 @@ import { useEffect, useState } from "react";
 import { api } from "./api.js";
 import { Avatar, Loading } from "./components.jsx";
 import { Link, matchRoute, navigate, usePath } from "./router.jsx";
+import Game from "./pages/Game.jsx";
 import Home from "./pages/Home.jsx";
+import NewGame from "./pages/NewGame.jsx";
 import Pitch from "./pages/Pitch.jsx";
 import Pitches from "./pages/Pitches.jsx";
 import SignIn from "./pages/SignIn.jsx";
@@ -14,6 +16,8 @@ const ROUTES = [
   ["/", Home],
   ["/pitches", Pitches],
   ["/pitch/:id", Pitch],
+  ["/pitch/:id/new-game", NewGame],
+  ["/game/:id", Game],
 ];
 
 // Where to go after signing in (e.g. the game link someone sent on WhatsApp).
