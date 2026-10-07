@@ -115,6 +115,20 @@ async def my_next_games(me: dict) -> list[dict]:
     return [card for card in cards if card["phase"] != "finished"][:5]
 
 
+async def my_unreported_games(me: dict) -> list[dict]:
+    """Games from the last week that I played and haven't told Star Boy about."""
+    db = get_db()
+    games = await db.games.find(
+        {"status": "scheduled",
+         "kickoff_at": {"$gte": now() - timedelta(days=7), "$lte": now()},
+         "invites": {"$elemMatch": {"user_id": me["_id"], "status": "in"}}}
+    ).sort("kickoff_at", -1).to_list(20)
+    reported = await db.claims.distinct(
+        "game_id", {"user_id": me["_id"], "game_id": {"$in": [game["_id"] for game in games]}}
+    )
+    return await cards_for([game for game in games if game["_id"] not in reported], me)
+
+
 # --- Create --------------------------------------------------------------
 
 @router.post("/pitches/{pitch_id}/games")
@@ -180,11 +194,21 @@ async def get_game(game_id: str, user: dict = Depends(current_user)):
         if invite["user_id"] in by_id:
             players[invite["status"]].append(by_id[invite["user_id"]])
 
+    card = game_card(game, pitch, user)
+    my_claim = await get_db().claims.find_one({"game_id": game["_id"], "user_id": user["_id"]})
     return {
-        **game_card(game, pitch, user),
+        **card,
         "created_by": by_id.get(game["created_by"]),
         "is_creator": game["created_by"] == user["_id"],
         "players": players,
+        # After kickoff, players who were in can tell Star Boy how it went.
+        "can_report": (game["status"] != "cancelled" and card["phase"] != "upcoming"
+                       and card["my_status"] == "in"),
+        "my_claim": my_claim and {
+            "status": my_claim["status"],
+            "stats": my_claim["stats"],
+            "transcript": my_claim["transcript"],
+        },
     }
 
 

@@ -17,6 +17,18 @@ export default function Home({ user }) {
     <div className="stack">
       <h2>How far, {firstName}? ⚽</h2>
 
+      {data.needs_report.map((game) => (
+        <section key={game.id} className="card stack highlight">
+          <h3>How was your game? 🎙️</h3>
+          <p>
+            <strong>{game.pitch.name}</strong>
+            <br />
+            <span className="muted">{game.kickoff_label}</span>
+          </p>
+          <Link to={`/game/${game.id}/report`} className="button gold">Tell Star Boy</Link>
+        </section>
+      ))}
+
       {nextGame && (
         <section className="card stack highlight">
           <h3>Your next game</h3>

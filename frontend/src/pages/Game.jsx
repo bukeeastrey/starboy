@@ -67,6 +67,30 @@ export default function Game({ id }) {
         </section>
       )}
 
+      {game.can_report && !game.my_claim && (
+        <Link to={`/game/${id}/report`} className="button gold big">
+          How was your game? 🎙️ Tell Star Boy
+        </Link>
+      )}
+
+      {game.my_claim && (
+        <section className="card stack">
+          <div className="row">
+            <strong className="row-text">Your report</strong>
+            <span className={game.my_claim.status === "confirmed" ? "chip in" : "chip gold"}>
+              {game.my_claim.status === "confirmed" ? "Confirmed ✅" : "Waiting for teammates ⏳"}
+            </span>
+          </div>
+          <p>{statLine(game.my_claim.stats)}</p>
+          {game.my_claim.stats.highlight && (
+            <p className="muted">“{game.my_claim.stats.highlight}”</p>
+          )}
+          {game.can_report && game.my_claim.status !== "confirmed" && (
+            <Link to={`/game/${id}/report`}>Something wrong? Tell Star Boy again</Link>
+          )}
+        </section>
+      )}
+
       {/* Someone who played but wasn't on the list can still add themselves. */}
       {!cancelled && finished && game.my_status !== "in" && (
         <section className="card stack">
@@ -91,6 +115,19 @@ export default function Game({ id }) {
       )}
     </div>
   );
+}
+
+// "2 goals · 1 assist · Won 5–3" from a claim's stats.
+function statLine(stats) {
+  const count = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
+  const parts = [count(stats.goals ?? 0, "goal"), count(stats.assists ?? 0, "assist")];
+  if (stats.saves !== null) parts.push(count(stats.saves, "save"));
+  if (stats.clean_sheet) parts.push("clean sheet");
+  if (stats.result) {
+    const result = { won: "Won", lost: "Lost", draw: "Draw" }[stats.result];
+    parts.push(stats.score ? `${result} ${stats.score.us}–${stats.score.them}` : result);
+  }
+  return parts.join(" · ");
 }
 
 function PlayerList({ title, players }) {

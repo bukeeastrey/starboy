@@ -1,14 +1,16 @@
 """Star Boy backend: the API, plus (once built) the React app itself."""
 
+import asyncio
 import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 
-from . import db, setup
-from .config import FRONTEND_DIST
-from .routes import games, home, pitches, users
+from . import db, jobs, llm, prompts, setup
+from . import pipeline  # noqa: F401  (importing it registers the AI job)
+from .config import AUDIO_DIR, FRONTEND_DIST
+from .routes import games, home, pitches, reports, users
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
 log = logging.getLogger("starboy")
@@ -18,13 +20,25 @@ log = logging.getLogger("starboy")
 async def lifespan(app: FastAPI):
     # Runs once when the server starts, and once when it stops.
     db.connect()
+
+    # A voice note left over from a crash must not stay on disk.
+    if AUDIO_DIR.is_dir():
+        for leftover in AUDIO_DIR.iterdir():
+            leftover.unlink(missing_ok=True)
+
     try:
         await setup.ensure_indexes()
         await setup.seed_pitches()
     except Exception as error:
         # Keep the server up so /api/health can say what is wrong.
         log.error("Database setup failed: %s", type(error).__name__)
+
+    await jobs.start()
+    # Load Gemma in the background so the first voice note isn't the slow one.
+    warm_up = asyncio.create_task(llm.warm_up(prompts.EXTRACT_SYSTEM))
     yield
+    warm_up.cancel()
+    jobs.stop()
     db.close()
 
 
@@ -33,6 +47,7 @@ app = FastAPI(title="Star Boy", lifespan=lifespan)
 app.include_router(users.router)
 app.include_router(pitches.router)
 app.include_router(games.router)
+app.include_router(reports.router)
 app.include_router(home.router)
 
 

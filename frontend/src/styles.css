@@ -411,6 +411,84 @@ input[type="checkbox"] {
   font-size: 1.5rem;
 }
 
+/* --- Voice note ("How was your game?") --------------------------------- */
+
+.mic {
+  align-self: center;
+  width: 140px;
+  height: 140px;
+  margin: 24px 0 8px;
+  border: none;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 0 6px var(--gold);
+  font-size: 56px;
+  cursor: pointer;
+  touch-action: none; /* holding the button must not scroll the page */
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.mic.recording {
+  background: var(--red);
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
+.timer {
+  font-size: 2rem;
+}
+
+/* The star that beats while Star Boy is working. */
+.pulse {
+  font-size: 3rem;
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  50% {
+    transform: scale(1.12);
+  }
+}
+
+.quote {
+  margin: 0;
+  font-style: italic;
+  border-left: 4px solid var(--gold);
+}
+
+.unsure {
+  border-color: var(--gold);
+}
+
+/* label  [−]  3  [+] */
+.stepper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.stepper span {
+  flex: 1;
+  font-weight: 600;
+}
+
+.stepper strong {
+  min-width: 32px;
+  text-align: center;
+  font-size: 1.6rem;
+}
+
+.stepper button {
+  width: 48px;
+  height: 48px;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+
 /* --- Pitch page -------------------------------------------------------- */
 
 .pitch-header {

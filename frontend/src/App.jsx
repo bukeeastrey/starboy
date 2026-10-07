@@ -7,6 +7,7 @@ import Home from "./pages/Home.jsx";
 import NewGame from "./pages/NewGame.jsx";
 import Pitch from "./pages/Pitch.jsx";
 import Pitches from "./pages/Pitches.jsx";
+import Report from "./pages/Report.jsx";
 import SignIn from "./pages/SignIn.jsx";
 import SignUp from "./pages/SignUp.jsx";
 import Welcome from "./pages/Welcome.jsx";
@@ -18,6 +19,7 @@ const ROUTES = [
   ["/pitch/:id", Pitch],
   ["/pitch/:id/new-game", NewGame],
   ["/game/:id", Game],
+  ["/game/:id/report", Report],
 ];
 
 // Where to go after signing in (e.g. the game link someone sent on WhatsApp).

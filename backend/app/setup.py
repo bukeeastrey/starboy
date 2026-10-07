@@ -19,7 +19,8 @@ async def ensure_indexes() -> None:
     await db.registrations.create_index("user_id")
     await db.games.create_index([("pitch_id", 1), ("kickoff_at", 1)])
     await db.games.create_index("invites.user_id")
-    await db.claims.create_index("game_id")
+    # One report per player per game (the first field also serves "by game").
+    await db.claims.create_index([("game_id", 1), ("user_id", 1)], unique=True)
     await db.claims.create_index([("user_id", 1), ("status", 1)])
 
 
