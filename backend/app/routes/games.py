@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from pydantic import BaseModel
 
-from .. import notify
+from .. import notify, summary
 from ..auth import current_user
 from ..config import settings
 from ..consensus import players_in, required_confirms
@@ -206,6 +206,9 @@ async def get_game(game_id: str, user: dict = Depends(current_user)):
     card = game_card(game, pitch, user)
     claims = await get_db().claims.find({"game_id": game["_id"]}).sort("created_at", 1).to_list(None)
     my_claim = next((c for c in claims if c["user_id"] == user["_id"]), None)
+    if claims and not game.get("summary"):
+        # Enough reports but no summary yet (e.g. demo data): ask for one.
+        asyncio.create_task(summary.maybe_queue(game["_id"]))
     i_was_in = card["my_status"] == "in"
     needed = required_confirms(players_in(game))
 
@@ -231,6 +234,7 @@ async def get_game(game_id: str, user: dict = Depends(current_user)):
         "is_creator": game["created_by"] == user["_id"],
         "players": players,
         "flags": game.get("flags", []),
+        "summary": game.get("summary") and {"text": game["summary"]["text"]},
         # After kickoff, players who were in can tell Star Boy how it went.
         "can_report": (game["status"] != "cancelled" and card["phase"] != "upcoming" and i_was_in),
         "my_claim": my_claim and {**claim_view(my_claim), "transcript": my_claim["transcript"]},

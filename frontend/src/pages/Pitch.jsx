@@ -73,7 +73,7 @@ export default function Pitch({ id, user }) {
       </nav>
 
       {tab === "Games" && <GamesTab pitch={pitch} />}
-      {tab === "Players" && <PlayersTab players={pitch.players} me={user} />}
+      {tab === "Players" && <PlayersTab players={pitch.players} me={user} pitchId={pitch.id} />}
       {tab === "Leaderboards" && <LeaderboardsTab pitch={pitch} />}
     </div>
   );
@@ -96,7 +96,7 @@ function GamesTab({ pitch }) {
   );
 }
 
-function PlayersTab({ players, me }) {
+function PlayersTab({ players, me, pitchId }) {
   const [sortBy, setSortBy] = useState("appearances");
 
   // Highest number first; equal numbers stay in name order.
@@ -108,6 +108,11 @@ function PlayersTab({ players, me }) {
 
   return (
     <div className="stack">
+      {players.length > 1 && (
+        <Link to={`/settle?pitch=${pitchId}`} className="button secondary">
+          Settle it ⚖️ Who's been better?
+        </Link>
+      )}
       <div className="sort-bar">
         <span className="muted">Sort by</span>
         {SORTS.map(([key, label]) => (

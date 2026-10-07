@@ -8,9 +8,9 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 
 from . import bot, db, jobs, llm, prompts, scheduler, setup
-from . import pipeline  # noqa: F401  (importing it registers the AI job)
+from . import pipeline, summary  # noqa: F401  (importing them registers their AI jobs)
 from .config import AUDIO_DIR, FRONTEND_DIST, settings
-from .routes import games, home, pitches, players, reports, telegram, users
+from .routes import games, home, pitches, players, reports, settle, telegram, users
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
 # httpx logs every address it calls, and Telegram addresses contain the bot
@@ -64,6 +64,7 @@ app.include_router(reports.router)
 app.include_router(players.router)
 app.include_router(home.router)
 app.include_router(telegram.router)
+app.include_router(settle.router)
 
 
 @app.get("/api/health")

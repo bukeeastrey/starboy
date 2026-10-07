@@ -1,5 +1,6 @@
 """Talks to Gemma through Ollama, which runs on this same machine."""
 
+import asyncio
 import json
 import logging
 import time
@@ -14,6 +15,8 @@ log = logging.getLogger("starboy.llm")
 # because the model (about 4 GB) is first read from disk into memory.
 TIMEOUT_SECONDS = 180
 COLD_TIMEOUT_SECONDS = 600
+
+_one_at_a_time = asyncio.Lock()
 
 
 def _keep_alive():
@@ -42,10 +45,12 @@ async def chat(system: str, user: str, *, json_mode: bool = False,
     if max_tokens:
         payload["options"]["num_predict"] = max_tokens
 
-    started = time.perf_counter()
-    async with httpx.AsyncClient(timeout=timeout) as client:
-        response = await client.post(f"{settings.ollama_url}/api/chat", json=payload)
-        response.raise_for_status()
+    # One question at a time: two at once on a CPU just make both slower.
+    async with _one_at_a_time:
+        started = time.perf_counter()
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            response = await client.post(f"{settings.ollama_url}/api/chat", json=payload)
+            response.raise_for_status()
     answer = response.json()["message"]["content"]
     log.info("Gemma answered in %.1f s (%d characters)",
              time.perf_counter() - started, len(answer))

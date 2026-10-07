@@ -51,6 +51,9 @@ export default function Player({ id }) {
               </span>
             )}
           </div>
+          <Link to={`/settle?pitch=${row.pitch.id}&a=${player.id}`} className="button secondary">
+            Settle it with… ⚖️
+          </Link>
         </section>
       ))}
 

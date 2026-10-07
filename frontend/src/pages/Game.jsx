@@ -79,6 +79,20 @@ export default function Game({ id }) {
         </p>
       )}
 
+      {game.summary && (
+        <section className="card stack highlight">
+          <h3>Game summary</h3>
+          <p className="verdict">{game.summary.text}</p>
+          <a
+            className="button gold"
+            href={whatsappLink(summaryMessage(game))}
+            target="_blank" rel="noreferrer"
+          >
+            Share to WhatsApp
+          </a>
+        </section>
+      )}
+
       {game.my_claim && (
         <section className="card stack">
           <div className="row">
@@ -135,6 +149,17 @@ export default function Game({ id }) {
       )}
     </div>
   );
+}
+
+// The summary as clean text for the crew's WhatsApp group.
+function summaryMessage(game) {
+  return [
+    `⭐ ${game.pitch.name} · ${game.kickoff_label}`,
+    "",
+    game.summary.text,
+    "",
+    `${window.location.origin}/game/${game.id}`,
+  ].join("\n");
 }
 
 // A teammate's report with Confirm ✅ / Dispute ❌ buttons.

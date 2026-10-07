@@ -619,3 +619,37 @@ input[type="checkbox"] {
   border-color: var(--red);
   color: #fff;
 }
+
+/* --- Settle it and summaries ------------------------------------------- */
+
+/* Text from Gemma keeps its line breaks. */
+.verdict {
+  white-space: pre-line;
+  font-size: 1.05rem;
+}
+
+/* Player A | stat | Player B */
+.versus {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: center;
+}
+
+.versus th {
+  padding-bottom: 8px;
+  width: 30%;
+}
+
+.versus td {
+  padding: 8px 4px;
+  border-top: 1px solid var(--border);
+}
+
+.versus td strong {
+  font-size: 1.3rem;
+}
+
+.pulse.small {
+  display: inline-block;
+  font-size: 1.2rem;
+}
