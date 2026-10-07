@@ -1,11 +1,12 @@
 """"How was your game?": send a voice note or text, check the stats, submit."""
 
+import asyncio
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile
 from pydantic import BaseModel
 
-from .. import consensus, jobs
+from .. import consensus, jobs, notify
 from ..auth import current_user
 from ..config import AUDIO_DIR
 from ..db import get_db
@@ -114,18 +115,27 @@ async def get_job(job_id: str, user: dict = Depends(current_user)):
 async def submit_claim(game_id: str, body: ClaimBody, user: dict = Depends(current_user)):
     """Save the stats the player checked. They stay "pending" until teammates confirm."""
     game = await reportable_game(game_id, user)
+    claim = await save_claim(game, user, body.transcript, body.stats,
+                             body.assisted_player_ids, edit=body.edit)
+    return {"status": "pending", "stats": claim["stats"]}
+
+
+async def save_claim(game: dict, user: dict, transcript: str, raw_stats: dict,
+                     assisted_player_ids: list[str], edit: bool = False) -> dict:
+    """Save a player's report as a pending claim and ask teammates to confirm.
+    Used by the web app and by the Telegram "Looks right ✅" button."""
     db = get_db()
 
     existing = await db.claims.find_one({"game_id": game["_id"], "user_id": user["_id"]})
-    if existing and existing["status"] == "confirmed" and not body.edit:
+    if existing and existing["status"] == "confirmed" and not edit:
         raise HTTPException(409, "Your teammates already confirmed your stats for this game.")
 
     # Check the numbers again: the player may have edited the card.
-    stats = clean_stats(body.stats)
+    stats = clean_stats(raw_stats)
 
     # Assisted players must be other players who were in this game.
     in_ids = {invite["user_id"] for invite in game["invites"] if invite["status"] == "in"}
-    wanted = {oid(player_id) for player_id in body.assisted_player_ids}
+    wanted = {oid(player_id) for player_id in assisted_player_ids}
     assisted = await db.users.find(
         {"_id": {"$in": list((wanted & in_ids) - {user["_id"]})}}
     ).to_list(None)
@@ -134,7 +144,7 @@ async def submit_claim(game_id: str, body: ClaimBody, user: dict = Depends(curre
     claim = {
         "game_id": game["_id"],
         "user_id": user["_id"],
-        "transcript": body.transcript.strip()[:MAX_TEXT_CHARS],
+        "transcript": transcript.strip()[:MAX_TEXT_CHARS],
         "stats": stats,
         "status": "pending",
         "confirmations": [],
@@ -148,4 +158,8 @@ async def submit_claim(game_id: str, body: ClaimBody, user: dict = Depends(curre
     )
     if existing and existing["status"] == "confirmed":
         await consensus.check_numbers(game["_id"])  # their old numbers no longer count
-    return {"status": "pending", "stats": stats}
+
+    # Ask the other players on Telegram (in the background).
+    saved = await db.claims.find_one({"game_id": game["_id"], "user_id": user["_id"]})
+    asyncio.create_task(notify.claim_to_teammates(saved, game, user))
+    return saved

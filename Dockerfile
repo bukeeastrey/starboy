@@ -29,6 +29,10 @@ RUN pip install --no-cache-dir -r backend/requirements.txt
 COPY --chown=user backend/ backend/
 COPY --chown=user --from=frontend /frontend/dist frontend/dist
 
+# The server has 16 GB of RAM: keep Gemma loaded for good (no cold starts),
+# and use the better Whisper model.
+ENV OLLAMA_KEEP_ALIVE=-1 WHISPER_MODEL=small
+
 # Hugging Face Spaces expect the app on port 7860.
 EXPOSE 7860
 WORKDIR /home/user/app/backend

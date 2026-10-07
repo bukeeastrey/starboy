@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { api } from "./api.js";
 import { Avatar, Loading } from "./components.jsx";
 import { Link, matchRoute, navigate, usePath } from "./router.jsx";
@@ -32,11 +32,20 @@ export default function App() {
   // undefined = still checking, null = signed out, otherwise the user.
   const [user, setUser] = useState(undefined);
 
-  useEffect(() => {
-    api("/api/me")
+  // Ask the backend who is signed in. Also used after connecting Telegram.
+  const refreshUser = useCallback(() => {
+    return api("/api/me")
       .then(setUser)
-      .catch(() => setUser(null));
+      .catch((err) => {
+        // Signed out (401), or the very first check failed: show the welcome
+        // screen. A network blip later on must not sign anyone out.
+        setUser((current) => (err.status === 401 || current === undefined ? null : current));
+      });
   }, []);
+
+  useEffect(() => {
+    refreshUser();
+  }, [refreshUser]);
 
   function onSignedIn(newUser) {
     setUser(newUser);
@@ -59,7 +68,7 @@ export default function App() {
     else if (path === "/signin") screen = <SignIn onSignedIn={onSignedIn} />;
     else {
       // Remember the page they wanted, then show the welcome screen.
-      if (path !== "/") sessionStorage.setItem(NEXT_KEY, path);
+      if (path !== "/") sessionStorage.setItem(NEXT_KEY, path + window.location.search);
       screen = <Welcome invited={path.startsWith("/game/")} />;
     }
   } else {
@@ -68,7 +77,7 @@ export default function App() {
       const params = matchRoute(pattern, path);
       if (params) {
         // key = path, so moving between two pitches starts a fresh screen.
-        screen = <Screen key={path} user={user} {...params} />;
+        screen = <Screen key={path} user={user} refreshUser={refreshUser} {...params} />;
         break;
       }
     }

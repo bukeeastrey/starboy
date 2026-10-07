@@ -15,6 +15,10 @@ async def ensure_indexes() -> None:
     """Create the indexes (MongoDB skips the ones that already exist)."""
     db = get_db()
     await db.users.create_index("phone", unique=True)
+    await db.users.create_index("telegram_chat_id", sparse=True)
+    # TTL indexes: MongoDB deletes these documents itself once "expires_at" passes.
+    await db.link_tokens.create_index("expires_at", expireAfterSeconds=0)
+    await db.bot_state.create_index("expires_at", expireAfterSeconds=0)
     await db.registrations.create_index([("pitch_id", 1), ("user_id", 1)], unique=True)
     await db.registrations.create_index("user_id")
     await db.games.create_index([("pitch_id", 1), ("kickoff_at", 1)])

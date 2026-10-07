@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Response
 from pydantic import BaseModel
 from pymongo.errors import DuplicateKeyError
 
+from .. import telegram
 from ..auth import (clear_session_cookie, current_user, hash_pin,
                     normalise_phone, set_session_cookie, verify_pin)
 from ..db import get_db
@@ -37,7 +38,13 @@ class SignIn(BaseModel):
 
 def me_view(user: dict) -> dict:
     """What a user sees about themselves (the only place a phone is returned)."""
-    return {**public_user(user), "phone": user["phone"]}
+    return {
+        **public_user(user),
+        "phone": user["phone"],
+        # For the "Connect Telegram 🔔" card on the Home screen.
+        "telegram_available": telegram.enabled(),
+        "telegram_linked": bool(user.get("telegram_chat_id")),
+    }
 
 
 @router.post("/auth/signup")

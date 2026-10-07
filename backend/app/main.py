@@ -7,12 +7,15 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 
-from . import db, jobs, llm, prompts, setup
+from . import bot, db, jobs, llm, prompts, scheduler, setup
 from . import pipeline  # noqa: F401  (importing it registers the AI job)
-from .config import AUDIO_DIR, FRONTEND_DIST
-from .routes import games, home, pitches, players, reports, users
+from .config import AUDIO_DIR, FRONTEND_DIST, settings
+from .routes import games, home, pitches, players, reports, telegram, users
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
+# httpx logs every address it calls, and Telegram addresses contain the bot
+# token. Only let it log warnings, so the secret never reaches the log.
+logging.getLogger("httpx").setLevel(logging.WARNING)
 log = logging.getLogger("starboy")
 
 
@@ -34,10 +37,20 @@ async def lifespan(app: FastAPI):
         log.error("Database setup failed: %s", type(error).__name__)
 
     await jobs.start()
-    # Load Gemma in the background so the first voice note isn't the slow one.
-    warm_up = asyncio.create_task(llm.warm_up(prompts.EXTRACT_SYSTEM))
+    background = [
+        # Load Gemma now, so the first voice note isn't the slow one.
+        asyncio.create_task(llm.warm_up(prompts.EXTRACT_SYSTEM)),
+        # Reminders: checked every minute.
+        asyncio.create_task(scheduler.run_forever()),
+    ]
+    if settings.bot_mode == "polling":
+        # On the laptop the bot asks Telegram for messages itself.
+        # (Deployed, Telegram calls /api/telegram/webhook instead.)
+        background.append(asyncio.create_task(bot.poll_forever()))
+    log.info("Telegram bot mode: %s", settings.bot_mode)
     yield
-    warm_up.cancel()
+    for task in background:
+        task.cancel()
     jobs.stop()
     db.close()
 
@@ -50,6 +63,7 @@ app.include_router(games.router)
 app.include_router(reports.router)
 app.include_router(players.router)
 app.include_router(home.router)
+app.include_router(telegram.router)
 
 
 @app.get("/api/health")

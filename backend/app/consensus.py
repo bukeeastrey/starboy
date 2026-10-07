@@ -72,6 +72,13 @@ async def refresh_claim(claim: dict, game: dict) -> str:
         )
         if status == "confirmed":
             await check_numbers(game["_id"])
+        # Tell the player on Telegram. Imported here: notify.py is only
+        # needed at this moment, and the rules above stay free of it.
+        from . import notify
+        try:
+            await notify.claim_decided(claim, status)
+        except Exception:
+            pass  # a failed message must never undo a confirmation
     return status
 
 

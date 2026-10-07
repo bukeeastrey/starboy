@@ -1,10 +1,12 @@
 """Games: set one up, invite players, answer the invite, add it to a calendar."""
 
+import asyncio
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from pydantic import BaseModel
 
+from .. import notify
 from ..auth import current_user
 from ..config import settings
 from ..consensus import players_in, required_confirms
@@ -177,6 +179,12 @@ async def create_game(pitch_id: str, body: NewGame, user: dict = Depends(current
         "created_at": now(),
     }
     await db.games.insert_one(game)
+
+    # Tell the invited players on Telegram, with "I'm in / Can't make it" buttons.
+    # In the background, so creating the game doesn't wait for Telegram.
+    if game_phase(game) == "upcoming":
+        invited = [invite["user_id"] for invite in invites if invite["status"] == "invited"]
+        asyncio.create_task(notify.invites(game, pitch, user, invited))
     return game_card(game, pitch, user)
 
 
@@ -241,35 +249,42 @@ async def rsvp(game_id: str, body: Rsvp, user: dict = Depends(current_user)):
     if game["status"] == "cancelled":
         raise HTTPException(400, "This game was cancelled.")
 
+    await set_rsvp(game, user["_id"], body.status)
+    return {"my_status": body.status}
+
+
+async def set_rsvp(game: dict, user_id, status: str) -> None:
+    """Save a player's answer. Used by the web app and by the Telegram buttons."""
     db = get_db()
-    answer = {"status": body.status, "responded_at": now()}
-    if invite_of(game, user["_id"]):
+    answer = {"status": status, "responded_at": now()}
+    if invite_of(game, user_id):
         await db.games.update_one(
-            {"_id": game["_id"], "invites.user_id": user["_id"]},
+            {"_id": game["_id"], "invites.user_id": user_id},
             {"$set": {"invites.$.status": answer["status"],
                       "invites.$.responded_at": answer["responded_at"]}},
         )
     else:
         # Not on the list yet: add them, and register them at the pitch.
         # "$ne" stops a double tap from adding the same player twice.
-        await register_at(pitch["_id"], user["_id"])
+        await register_at(game["pitch_id"], user_id)
         await db.games.update_one(
-            {"_id": game["_id"], "invites.user_id": {"$ne": user["_id"]}},
+            {"_id": game["_id"], "invites.user_id": {"$ne": user_id}},
             {"$push": {"invites": {
-                "user_id": user["_id"], **answer,
+                "user_id": user_id, **answer,
                 # Joined after kickoff = "I played": someone must confirm it.
                 "self_added": game_phase(game) != "upcoming",
             }}},
         )
-    return {"my_status": body.status}
 
 
 @router.post("/games/{game_id}/cancel")
 async def cancel_game(game_id: str, user: dict = Depends(current_user)):
-    game, _ = await load_game(game_id)
+    game, pitch = await load_game(game_id)
     if game["created_by"] != user["_id"]:
         raise HTTPException(403, "Only the person who set up the game can cancel it.")
     await get_db().games.update_one({"_id": game["_id"]}, {"$set": {"status": "cancelled"}})
+    if game["status"] != "cancelled" and game_phase(game) == "upcoming":
+        asyncio.create_task(notify.cancelled(game, pitch))
     return {"status": "cancelled"}
 
 

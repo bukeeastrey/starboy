@@ -20,8 +20,11 @@ const STAGE_TEXT = {
 //   record (or type) -> processing -> review -> back to the game page
 export default function Report({ id, user }) {
   const { data: game, error } = useLoad(() => api(`/api/games/${id}`), [id]);
-  const [step, setStep] = useState("record");
-  const [jobId, setJobId] = useState(null);
+  // "?job=<id>" in the address: the player already sent a voice note on
+  // Telegram and tapped "Edit on web ✏️", so go straight to that result.
+  const [fromTelegram] = useState(() => new URLSearchParams(window.location.search).get("job"));
+  const [step, setStep] = useState(fromTelegram ? "processing" : "record");
+  const [jobId, setJobId] = useState(fromTelegram);
   const [result, setResult] = useState(null); // { transcript, stats, unclear }
   const [problem, setProblem] = useState("");
 

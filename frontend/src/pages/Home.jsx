@@ -2,8 +2,9 @@ import { api } from "../api.js";
 import { ErrorNote, Loading, useLoad } from "../components.jsx";
 import { GameRow, RsvpButtons, StatusChip } from "../game-parts.jsx";
 import { Link } from "../router.jsx";
+import TelegramCard from "../TelegramCard.jsx";
 
-export default function Home({ user }) {
+export default function Home({ user, refreshUser }) {
   const { data, error, reload } = useLoad(() => api("/api/home"), []);
   const firstName = user.nickname || user.name.split(" ")[0];
 
@@ -16,6 +17,7 @@ export default function Home({ user }) {
   return (
     <div className="stack">
       <h2>How far, {firstName}? ⚽</h2>
+      <TelegramCard user={user} refreshUser={refreshUser} />
 
       {data.needs_report.map((game) => (
         <section key={game.id} className="card stack highlight">

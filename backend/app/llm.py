@@ -16,6 +16,12 @@ TIMEOUT_SECONDS = 180
 COLD_TIMEOUT_SECONDS = 600
 
 
+def _keep_alive():
+    """Ollama wants a time like "30m", or a plain number: -1 means "forever"."""
+    value = settings.ollama_keep_alive.strip()
+    return int(value) if value.lstrip("-").isdigit() else value
+
+
 async def chat(system: str, user: str, *, json_mode: bool = False,
                temperature: float = 0.1, max_tokens: int | None = None) -> str:
     """Send one question to Gemma and return its answer as text."""
@@ -28,7 +34,7 @@ async def chat(system: str, user: str, *, json_mode: bool = False,
         ],
         "stream": False,
         "think": False,  # Gemma 4 gives empty answers with thinking on
-        "keep_alive": "30m",  # keep the model in memory between voice notes
+        "keep_alive": _keep_alive(),  # keep the model in memory between voice notes
         "options": {"temperature": temperature, "num_ctx": 4096},
     }
     if json_mode:

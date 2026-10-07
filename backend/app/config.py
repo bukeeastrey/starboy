@@ -40,6 +40,30 @@ class Settings(BaseSettings):
     ollama_url: str = "http://127.0.0.1:11434"
     ollama_model: str = "gemma4:e2b-it-qat"
     whisper_model: str = "small"
+    # How long Ollama keeps Gemma in memory after an answer: "30m", or "-1"
+    # for always (used on the server, which has enough RAM: no cold starts).
+    ollama_keep_alive: str = "30m"
+
+    # Telegram bot (reminders, invites, voice notes). Empty token = bot is off.
+    telegram_bot_token: str = ""
+    # "polling" (laptop: the app asks Telegram for news), "webhook" (deployed:
+    # Telegram calls us) or "off". Empty = webhook when PUBLIC_BASE_URL is set,
+    # otherwise polling.
+    telegram_mode: str = ""
+    # Telegram sends this back with every webhook call, so we know it's Telegram.
+    telegram_webhook_secret: str = ""
+
+    # Protects /api/cron/tick (the free cron ping that keeps reminders going).
+    cron_token: str = ""
+
+    @property
+    def bot_mode(self) -> str:
+        """Which way the bot runs: "polling", "webhook" or "off"."""
+        if not self.telegram_bot_token:
+            return "off"
+        if self.telegram_mode:
+            return self.telegram_mode
+        return "webhook" if self.public_base_url else "polling"
 
 
 settings = Settings()

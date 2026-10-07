@@ -19,6 +19,15 @@ _handlers = {}  # job type -> the async function that does it
 _worker_task: asyncio.Task | None = None
 
 
+_finished_callbacks = []  # async functions called with each finished job
+
+
+def on_finished(callback):
+    """Decorator: "call this function every time a job finishes"."""
+    _finished_callbacks.append(callback)
+    return callback
+
+
 def handler(job_type: str):
     """Decorator: "this function does jobs of this type"."""
     def register(function):
@@ -67,6 +76,12 @@ async def _worker() -> None:
         await db.jobs.update_one(
             {"_id": job_id}, {"$set": {**update, "stage": "finished", "finished_at": now()}}
         )
+        # Tell whoever is waiting (the Telegram bot replies to the player).
+        for callback in _finished_callbacks:
+            try:
+                await callback({**job, **update})
+            except Exception:
+                log.exception("A job-finished callback failed")
 
 
 async def start() -> None:
