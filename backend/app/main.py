@@ -10,7 +10,7 @@ from fastapi.responses import FileResponse
 from . import db, jobs, llm, prompts, setup
 from . import pipeline  # noqa: F401  (importing it registers the AI job)
 from .config import AUDIO_DIR, FRONTEND_DIST
-from .routes import games, home, pitches, reports, users
+from .routes import games, home, pitches, players, reports, users
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
 log = logging.getLogger("starboy")
@@ -48,6 +48,7 @@ app.include_router(users.router)
 app.include_router(pitches.router)
 app.include_router(games.router)
 app.include_router(reports.router)
+app.include_router(players.router)
 app.include_router(home.router)
 
 

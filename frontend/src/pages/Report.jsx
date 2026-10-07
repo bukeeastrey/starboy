@@ -309,6 +309,8 @@ function Review({ game, result, me, onRedo, onSubmitted }) {
         body: {
           transcript: result.transcript,
           assisted_player_ids: [...assisted],
+          // "?edit=1" in the address = changing a report teammates already confirmed.
+          edit: new URLSearchParams(window.location.search).has("edit"),
           // Not a keeper today = no keeper stats.
           stats: keeper ? stats : { ...stats, saves: null, clean_sheet: null },
         },

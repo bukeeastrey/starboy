@@ -69,6 +69,19 @@ export function RsvpButtons({ game, onDone }) {
   );
 }
 
+// "2 goals · 1 assist · Won 5–3" from a report's stats.
+export function statLine(stats) {
+  const count = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
+  const parts = [count(stats.goals ?? 0, "goal"), count(stats.assists ?? 0, "assist")];
+  if (stats.saves !== null && stats.saves !== undefined) parts.push(count(stats.saves, "save"));
+  if (stats.clean_sheet) parts.push("clean sheet");
+  if (stats.result) {
+    const result = { won: "Won", lost: "Lost", draw: "Draw" }[stats.result];
+    parts.push(stats.score ? `${result} ${stats.score.us}–${stats.score.them}` : result);
+  }
+  return parts.join(" · ");
+}
+
 // A link that opens WhatsApp with a message ready to send.
 export function whatsappLink(text) {
   return `https://wa.me/?text=${encodeURIComponent(text)}`;

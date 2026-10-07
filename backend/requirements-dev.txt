@@ -1,0 +1,3 @@
+# Only for running the tests on your computer (not installed in Docker).
+-r requirements.txt
+pytest

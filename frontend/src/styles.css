@@ -556,3 +556,66 @@ input[type="checkbox"] {
 .stat.selected {
   color: var(--text);
 }
+
+.stats.wide {
+  justify-content: space-between;
+}
+
+/* --- Leaderboards and profile ------------------------------------------ */
+
+.board {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.board .row {
+  min-height: 48px;
+}
+
+.board .row-text {
+  color: var(--text);
+  text-decoration: none;
+}
+
+.rank {
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--border);
+  font-weight: 800;
+  font-size: 0.85rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rank.first {
+  background: var(--gold);
+  color: #14211b;
+}
+
+.board-number {
+  font-size: 1.25rem;
+  white-space: nowrap;
+}
+
+.profile-header {
+  align-items: center;
+  text-align: center;
+}
+
+.avatar-link {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+}
+
+.button.danger.selected {
+  background: var(--red);
+  border-color: var(--red);
+  color: #fff;
+}

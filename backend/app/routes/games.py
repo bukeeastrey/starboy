@@ -7,6 +7,7 @@ from pydantic import BaseModel
 
 from ..auth import current_user
 from ..config import settings
+from ..consensus import players_in, required_confirms
 from ..db import get_db
 from ..util import WAT, format_kickoff, now, oid, public_user
 from .pitches import register_at
@@ -195,20 +196,38 @@ async def get_game(game_id: str, user: dict = Depends(current_user)):
             players[invite["status"]].append(by_id[invite["user_id"]])
 
     card = game_card(game, pitch, user)
-    my_claim = await get_db().claims.find_one({"game_id": game["_id"], "user_id": user["_id"]})
+    claims = await get_db().claims.find({"game_id": game["_id"]}).sort("created_at", 1).to_list(None)
+    my_claim = next((c for c in claims if c["user_id"] == user["_id"]), None)
+    i_was_in = card["my_status"] == "in"
+    needed = required_confirms(players_in(game))
+
+    def claim_view(claim: dict) -> dict:
+        """A teammate's report, as shown on the game page."""
+        my_vote = ("confirm" if user["_id"] in claim["confirmations"]
+                   else "dispute" if user["_id"] in claim["disputes"] else None)
+        return {
+            "id": str(claim["_id"]),
+            "player": by_id.get(claim["user_id"]),
+            "stats": claim["stats"],
+            "status": claim["status"],
+            "confirms": len(claim["confirmations"]),
+            "disputes": len(claim["disputes"]),
+            "needed": needed,
+            "my_vote": my_vote,
+            "can_vote": i_was_in and claim["status"] == "pending",
+        }
+
     return {
         **card,
         "created_by": by_id.get(game["created_by"]),
         "is_creator": game["created_by"] == user["_id"],
         "players": players,
+        "flags": game.get("flags", []),
         # After kickoff, players who were in can tell Star Boy how it went.
-        "can_report": (game["status"] != "cancelled" and card["phase"] != "upcoming"
-                       and card["my_status"] == "in"),
-        "my_claim": my_claim and {
-            "status": my_claim["status"],
-            "stats": my_claim["stats"],
-            "transcript": my_claim["transcript"],
-        },
+        "can_report": (game["status"] != "cancelled" and card["phase"] != "upcoming" and i_was_in),
+        "my_claim": my_claim and {**claim_view(my_claim), "transcript": my_claim["transcript"]},
+        "claims": [claim_view(c) for c in claims
+                   if c["user_id"] != user["_id"] and c["user_id"] in by_id],
     }
 
 

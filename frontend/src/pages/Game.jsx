@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { api } from "../api.js";
 import { Avatar, ErrorNote, Loading, PlayerName, useLoad } from "../components.jsx";
-import { RsvpButtons, inviteMessage, whatsappLink } from "../game-parts.jsx";
+import { RsvpButtons, inviteMessage, statLine, whatsappLink } from "../game-parts.jsx";
 import { Link } from "../router.jsx";
 
 export default function Game({ id }) {
@@ -73,21 +73,41 @@ export default function Game({ id }) {
         </Link>
       )}
 
+      {game.flags.includes("numbers_dont_add_up") && (
+        <p className="card unsure">
+          Numbers no add up 👀 The confirmed goals are more than the score. Check your reports.
+        </p>
+      )}
+
       {game.my_claim && (
         <section className="card stack">
           <div className="row">
             <strong className="row-text">Your report</strong>
-            <span className={game.my_claim.status === "confirmed" ? "chip in" : "chip gold"}>
-              {game.my_claim.status === "confirmed" ? "Confirmed ✅" : "Waiting for teammates ⏳"}
-            </span>
+            <ClaimStatus claim={game.my_claim} />
           </div>
           <p>{statLine(game.my_claim.stats)}</p>
           {game.my_claim.stats.highlight && (
             <p className="muted">“{game.my_claim.stats.highlight}”</p>
           )}
-          {game.can_report && game.my_claim.status !== "confirmed" && (
+          {game.my_claim.status === "disputed" && (
+            <p className="muted">Your teammates disputed this. Tell Star Boy again with the right numbers.</p>
+          )}
+          {game.can_report && game.my_claim.status === "confirmed" ? (
+            <Link to={`/game/${id}/report?edit=1`}>Ask for an edit (teammates confirm again)</Link>
+          ) : game.can_report && (
             <Link to={`/game/${id}/report`}>Something wrong? Tell Star Boy again</Link>
           )}
+        </section>
+      )}
+
+      {game.claims.length > 0 && (
+        <section className="stack">
+          <h3>What your teammates said</h3>
+          <ul className="list">
+            {game.claims.map((claim) => (
+              <ClaimCard key={claim.id} claim={claim} onVoted={reload} />
+            ))}
+          </ul>
         </section>
       )}
 
@@ -117,17 +137,66 @@ export default function Game({ id }) {
   );
 }
 
-// "2 goals · 1 assist · Won 5–3" from a claim's stats.
-function statLine(stats) {
-  const count = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
-  const parts = [count(stats.goals ?? 0, "goal"), count(stats.assists ?? 0, "assist")];
-  if (stats.saves !== null) parts.push(count(stats.saves, "save"));
-  if (stats.clean_sheet) parts.push("clean sheet");
-  if (stats.result) {
-    const result = { won: "Won", lost: "Lost", draw: "Draw" }[stats.result];
-    parts.push(stats.score ? `${result} ${stats.score.us}–${stats.score.them}` : result);
+// A teammate's report with Confirm ✅ / Dispute ❌ buttons.
+function ClaimCard({ claim, onVoted }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  async function vote(choice) {
+    setBusy(true);
+    setError("");
+    try {
+      await api(`/api/claims/${claim.id}/vote`, { method: "POST", body: { vote: choice } });
+      await onVoted();
+    } catch (err) {
+      setError(err.message);
+    }
+    setBusy(false);
   }
-  return parts.join(" · ");
+
+  const player = claim.player;
+  return (
+    <li className="card stack">
+      <div className="row">
+        <Avatar user={player} size={36} />
+        <span className="row-text">
+          <Link to={`/player/${player.id}`} className="player-name">
+            {player.nickname || player.name.split(" ")[0]} says:
+          </Link>
+          <span>{statLine(claim.stats)}</span>
+        </span>
+        <ClaimStatus claim={claim} />
+      </div>
+      {claim.stats.highlight && <p className="muted">“{claim.stats.highlight}”</p>}
+      {claim.can_vote && (
+        <div className="button-row">
+          <button
+            className={claim.my_vote === "confirm" ? "button" : "button secondary"}
+            onClick={() => vote("confirm")} disabled={busy}
+          >
+            ✅ Confirm
+          </button>
+          <button
+            className={claim.my_vote === "dispute" ? "button danger selected" : "button danger"}
+            onClick={() => vote("dispute")} disabled={busy}
+          >
+            ❌ Dispute
+          </button>
+        </div>
+      )}
+      <ErrorNote error={error} />
+    </li>
+  );
+}
+
+function ClaimStatus({ claim }) {
+  if (claim.status === "confirmed") return <span className="chip in">Confirmed ✅</span>;
+  if (claim.status === "disputed") return <span className="chip out">Disputed</span>;
+  return (
+    <span className="chip gold">
+      {claim.confirms}/{claim.needed} ✅{claim.disputes ? ` · ${claim.disputes} ❌` : ""}
+    </span>
+  );
 }
 
 function PlayerList({ title, players }) {
@@ -140,7 +209,7 @@ function PlayerList({ title, players }) {
           <li key={player.id} className="card row">
             <Avatar user={player} />
             <span className="row-text">
-              <PlayerName user={player} />
+              <Link to={`/player/${player.id}`}><PlayerName user={player} /></Link>
               <span className="muted">{player.position}</span>
             </span>
           </li>

@@ -7,6 +7,7 @@ import Home from "./pages/Home.jsx";
 import NewGame from "./pages/NewGame.jsx";
 import Pitch from "./pages/Pitch.jsx";
 import Pitches from "./pages/Pitches.jsx";
+import Player from "./pages/Player.jsx";
 import Report from "./pages/Report.jsx";
 import SignIn from "./pages/SignIn.jsx";
 import SignUp from "./pages/SignUp.jsx";
@@ -20,6 +21,7 @@ const ROUTES = [
   ["/pitch/:id/new-game", NewGame],
   ["/game/:id", Game],
   ["/game/:id/report", Report],
+  ["/player/:id", Player],
 ];
 
 // Where to go after signing in (e.g. the game link someone sent on WhatsApp).
@@ -78,7 +80,9 @@ export default function App() {
         <header className="topbar">
           <Link to="/" className="brand">⭐ Star Boy</Link>
           <button className="link-button" onClick={signOut}>Sign out</button>
-          <Avatar user={user} size={34} />
+          <Link to={`/player/${user.id}`} className="avatar-link" aria-label="Your profile">
+            <Avatar user={user} size={34} />
+          </Link>
         </header>
       )}
       <main className="main">{screen}</main>

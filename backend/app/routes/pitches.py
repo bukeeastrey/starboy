@@ -95,6 +95,7 @@ async def get_pitch(pitch_id: str, user: dict = Depends(current_user)):
         "player_count": len(players),
         "registered": any(player["id"] == my_id for player in players),
         "players": players,
+        "leaderboards": await stats.leaderboards(pitch["_id"]),
         "games": await pitch_games(pitch["_id"], user),
     }
 

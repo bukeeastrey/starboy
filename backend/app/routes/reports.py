@@ -5,7 +5,7 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, UploadFile
 from pydantic import BaseModel
 
-from .. import jobs
+from .. import consensus, jobs
 from ..auth import current_user
 from ..config import AUDIO_DIR
 from ..db import get_db
@@ -29,6 +29,8 @@ class ClaimBody(BaseModel):
     transcript: str = ""
     stats: dict
     assisted_player_ids: list[str] = []
+    # True = "ask for an edit" of a report teammates already confirmed.
+    edit: bool = False
 
 
 async def reportable_game(game_id: str, user: dict) -> dict:
@@ -115,7 +117,7 @@ async def submit_claim(game_id: str, body: ClaimBody, user: dict = Depends(curre
     db = get_db()
 
     existing = await db.claims.find_one({"game_id": game["_id"], "user_id": user["_id"]})
-    if existing and existing["status"] == "confirmed":
+    if existing and existing["status"] == "confirmed" and not body.edit:
         raise HTTPException(409, "Your teammates already confirmed your stats for this game.")
 
     # Check the numbers again: the player may have edited the card.
@@ -140,8 +142,10 @@ async def submit_claim(game_id: str, body: ClaimBody, user: dict = Depends(curre
         "created_at": now(),
         "confirmed_at": None,
     }
-    # A new report replaces the player's earlier pending (or disputed) one.
+    # A new report replaces the player's earlier one and needs confirming again.
     await db.claims.replace_one(
         {"game_id": game["_id"], "user_id": user["_id"]}, claim, upsert=True
     )
+    if existing and existing["status"] == "confirmed":
+        await consensus.check_numbers(game["_id"])  # their old numbers no longer count
     return {"status": "pending", "stats": stats}

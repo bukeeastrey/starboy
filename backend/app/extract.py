@@ -112,7 +112,7 @@ def match_player(name: str, players: list[dict]) -> dict | None:
         if len(wanted) >= 3 and len(label) >= 3 and (wanted in label or label in wanted):
             return player
     # Small spelling differences from the transcription ("Tunday" for "Tunde").
-    close = difflib.get_close_matches(wanted, list(labels), n=1, cutoff=0.75)
+    close = difflib.get_close_matches(wanted, list(labels), n=1, cutoff=0.7)
     return labels[close[0]] if close else None
 
 

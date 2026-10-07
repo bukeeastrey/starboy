@@ -1,10 +1,18 @@
 import { useState } from "react";
 import { api } from "../api.js";
 import { Avatar, ErrorNote, Loading, PlayerName, useLoad } from "../components.jsx";
-import { GameRow } from "../game-parts.jsx";
+import { GameRow, whatsappLink } from "../game-parts.jsx";
 import { Link } from "../router.jsx";
 
-const TABS = ["Games", "Players"];
+const TABS = ["Games", "Players", "Leaderboards"];
+
+// The four boards: key from the API, title, the stat shown, its unit.
+const BOARDS = [
+  ["most_consistent", "🏃 Most Consistent", "appearances", "games"],
+  ["golden_boot", "👟 Golden Boot", "goals", "goals"],
+  ["playmaker", "🎯 Playmaker", "assists", "assists"],
+  ["most_wins", "🏆 Most Wins", "wins", "wins"],
+];
 
 // The columns the Players tab can be sorted by.
 const SORTS = [
@@ -66,6 +74,7 @@ export default function Pitch({ id, user }) {
 
       {tab === "Games" && <GamesTab pitch={pitch} />}
       {tab === "Players" && <PlayersTab players={pitch.players} me={user} />}
+      {tab === "Leaderboards" && <LeaderboardsTab pitch={pitch} />}
     </div>
   );
 }
@@ -117,7 +126,7 @@ function PlayersTab({ players, me }) {
           <li key={player.id} className="card row">
             <Avatar user={player} />
             <span className="row-text">
-              <PlayerName user={player} />
+              <Link to={`/player/${player.id}`}><PlayerName user={player} /></Link>
               <span className="muted">
                 {player.position}
                 {player.id === me.id ? " · You" : ""}
@@ -136,4 +145,65 @@ function PlayersTab({ players, me }) {
       </ul>
     </div>
   );
+}
+
+// The pitch's leaderboards (confirmed stats only), plus a WhatsApp share.
+function LeaderboardsTab({ pitch }) {
+  const boards = pitch.leaderboards;
+  const empty = BOARDS.every(([key]) => boards[key].length === 0);
+  if (empty) {
+    return (
+      <p className="card muted">
+        No confirmed stats yet. Play a game, tell Star Boy how it went, and
+        confirm each other's reports. The leaderboards fill up from there. 🏆
+      </p>
+    );
+  }
+
+  return (
+    <div className="stack">
+      {BOARDS.map(([key, title, stat, unit]) => (
+        <section key={key} className="card stack">
+          <h3>{title}</h3>
+          {boards[key].length === 0 && <p className="muted">Nobody yet.</p>}
+          <ol className="board">
+            {boards[key].map((player, index) => (
+              <li key={player.id} className="row">
+                <span className={index === 0 ? "rank first" : "rank"}>{index + 1}</span>
+                <Avatar user={player} size={32} />
+                <Link to={`/player/${player.id}`} className="row-text">
+                  <PlayerName user={player} />
+                </Link>
+                <strong className="board-number">
+                  {player[stat]} <small className="muted">{unit}</small>
+                </strong>
+              </li>
+            ))}
+          </ol>
+        </section>
+      ))}
+      <a
+        className="button gold"
+        href={whatsappLink(leaderboardMessage(pitch))}
+        target="_blank" rel="noreferrer"
+      >
+        Share leaderboard to WhatsApp
+      </a>
+    </div>
+  );
+}
+
+// Clean text for the crew's WhatsApp group: top 3 of each board.
+function leaderboardMessage(pitch) {
+  const lines = [`⭐ ${pitch.name} leaderboard`];
+  for (const [key, title, stat] of BOARDS) {
+    const top = pitch.leaderboards[key].slice(0, 3);
+    if (top.length === 0) continue;
+    lines.push("", title);
+    top.forEach((player, i) => {
+      lines.push(`${i + 1}. ${player.nickname || player.name} (${player[stat]})`);
+    });
+  }
+  lines.push("", "Confirmed stats only.", `${window.location.origin}/pitch/${pitch.id}`);
+  return lines.join("\n");
 }
