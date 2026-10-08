@@ -48,6 +48,8 @@ async def settle_it(body: SettleBody, me: dict = Depends(current_user)):
         "user_id": me["_id"],
         "facts": settle.facts_text(names["a"], names["b"], scope, result["table"]),
         "fallback": result["fallback"],
+        # None = a draw. The job checks that Gemma's verdict names this player.
+        "winner_name": names.get(result["winner"]),
     })
     return {"enough": True, "players": players, "names": names, "scope": scope,
-            "table": result["table"], "job_id": job_id}
+            "table": result["table"], "winner": result["winner"], "job_id": job_id}

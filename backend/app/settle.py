@@ -99,28 +99,71 @@ def build_table(reports_a: list[dict], reports_b: list[dict]) -> list[dict]:
     return rows
 
 
+# Rows that say how much someone played, not how well. They don't decide anything.
+NOT_DECIDING = ("Games played", "Games both played")
+
+
+def decide(table: list[dict]) -> dict:
+    """Who wins? Decided here in code, so the verdict is always clear and the
+    same numbers always give the same winner. Gemma only explains it.
+
+    Each stat a player leads in is one point. If the points are level, total
+    goals + assists breaks the tie. Only if that is level too is it a draw.
+    Returns {"winner": "a" | "b" | "draw", "leads_a": [labels], "leads_b": [labels]}."""
+    def number(text: str) -> float:
+        return float(text.rstrip("%"))
+
+    values = {row["label"]: (number(row["a"]), number(row["b"])) for row in table}
+    leads_a = [label for label, (a, b) in values.items() if a > b and label not in NOT_DECIDING]
+    leads_b = [label for label, (a, b) in values.items() if b > a and label not in NOT_DECIDING]
+
+    points_a, points_b = len(leads_a), len(leads_b)
+    if points_a == points_b:
+        points_a = values["Goals"][0] + values["Assists"][0]
+        points_b = values["Goals"][1] + values["Assists"][1]
+    winner = "a" if points_a > points_b else "b" if points_b > points_a else "draw"
+    return {"winner": winner, "leads_a": leads_a, "leads_b": leads_b}
+
+
 def facts_text(name_a: str, name_b: str, scope: str, table: list[dict]) -> str:
-    """What Gemma gets: the two names, the scope and the table. Nothing else."""
+    """What Gemma gets: the names, the scope, the table and the decision. Nothing else."""
+    decision = decide(table)
     lines = [f"Players: {name_a} vs {name_b}", f"Scope: {scope}", "", f"Stat | {name_a} | {name_b}"]
     lines += [f"{row['label']} | {row['a']} | {row['b']}" for row in table]
+    lines += [
+        "",
+        f"{name_a} leads in: {', '.join(decision['leads_a']) or 'nothing'}",
+        f"{name_b} leads in: {', '.join(decision['leads_b']) or 'nothing'}",
+    ]
+    if decision["winner"] == "draw":
+        lines.append("DECISION: it is a draw.")
+    else:
+        lines.append(f"DECISION: {name_a if decision['winner'] == 'a' else name_b} wins.")
     return "\n".join(lines)
 
 
+def verdict_is_clear(text: str, winner_name: str | None) -> bool:
+    """The verdict must name the winner the code picked, and not hedge."""
+    lowered = text.lower()
+    if winner_name is None:
+        return "draw" in lowered
+    return winner_name.lower() in lowered and "draw" not in lowered
+
+
 def template_verdict(name_a: str, name_b: str, reports_a: list[dict], reports_b: list[dict]) -> str:
-    """The plain verdict used if Gemma fails or invents a number twice."""
+    """The plain verdict used if Gemma fails, hedges or invents a number twice."""
     a, b = totals(reports_a), totals(reports_b)
+    winner = decide(build_table(reports_a, reports_b))["winner"]
 
     def line(name, t):
         return (f"{name}: {t['goals']} goals, {t['assists']} assists and {t['wins']} wins "
                 f"in {t['games']} {'game' if t['games'] == 1 else 'games'}.")
 
-    points_a = a["goals"] + a["assists"] + a["wins"]
-    points_b = b["goals"] + b["assists"] + b["wins"]
     numbers = f"{line(name_a, a)} {line(name_b, b)}"
-    if points_a == points_b:
+    if winner == "draw":
         return f"Too close to call: na draw. {numbers} Settle it on the pitch. ⚽"
-    winner, loser = (name_a, name_b) if points_a > points_b else (name_b, name_a)
-    return f"{winner} takes it on the numbers. {numbers} {loser}, the pitch is waiting for your reply. ⚽"
+    best, other = (name_a, name_b) if winner == "a" else (name_b, name_a)
+    return f"{best} takes it on the numbers. {numbers} {other}, the pitch is waiting for your reply. ⚽"
 
 
 def names_for(user_a: dict, user_b: dict) -> tuple[str, str]:
@@ -149,6 +192,7 @@ async def compare(user_a: dict, user_b: dict, pitch: dict, game: dict | None) ->
         "enough": True,
         "names": {"a": name_a, "b": name_b},
         "table": table,
+        "winner": decide(table)["winner"],
         "fallback": template_verdict(name_a, name_b, reports_a, reports_b),
     }
 
@@ -158,5 +202,6 @@ async def write_verdict(job: dict) -> dict:
     """The AI job: Gemma writes the verdict from the table, then we verify it."""
     data = job["input"]
     await jobs.set_stage(job["_id"], "thinking")
-    return await verify.write_with_facts(prompts.SETTLE_SYSTEM, data["facts"],
-                                         lambda: data["fallback"])
+    return await verify.write_with_facts(
+        prompts.SETTLE_SYSTEM, data["facts"], lambda: data["fallback"],
+        also_check=lambda text: verdict_is_clear(text, data.get("winner_name")))

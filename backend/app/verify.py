@@ -38,8 +38,10 @@ def invented_numbers(text: str, facts: str) -> list[float]:
 
 
 async def write_with_facts(system: str, facts: str, fallback: Callable[[], str],
-                           max_tokens: int = 220) -> dict:
+                           max_tokens: int = 220,
+                           also_check: Callable[[str], bool] | None = None) -> dict:
     """Let Gemma write from the facts; verify; retry once; else use the template.
+    `also_check` is an extra test the text must pass (besides the numbers).
     Returns {"text": ..., "source": "gemma" or "template"}."""
     for attempt in (1, 2):
         try:
@@ -48,7 +50,7 @@ async def write_with_facts(system: str, facts: str, fallback: Callable[[], str],
             log.warning("Gemma failed (attempt %d): %s", attempt, type(error).__name__)
             continue
         bad = invented_numbers(text, facts)
-        if text and not bad:
+        if text and not bad and (also_check is None or also_check(text)):
             return {"text": text, "source": "gemma"}
-        log.warning("Gemma used numbers that are not in the facts (attempt %d): %s", attempt, bad)
+        log.warning("Gemma's text failed the checks (attempt %d). Invented numbers: %s", attempt, bad)
     return {"text": fallback(), "source": "template"}

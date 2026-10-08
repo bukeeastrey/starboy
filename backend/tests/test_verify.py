@@ -70,3 +70,17 @@ def test_summary_facts_and_template():
     assert facts["goals"] == "Tunde 2, Emeka 1 (pending)"
     assert facts["assists"] == "Emeka 2 (pending)"
     assert invented_numbers(template_summary(facts), summary_facts(facts)) == []
+
+
+def test_the_code_picks_a_clear_winner():
+    from app.settle import decide, verdict_is_clear
+    decision = decide(build_table(A, B))
+    # Bayo leads in goals, goals per game and win streak; Tunde leads in nothing.
+    assert decision["winner"] == "b"
+    assert "Goals" in decision["leads_b"] and decision["leads_a"] == []
+    assert "DECISION: Bayo wins." in facts_text("Tunde", "Bayo", "Parklane, all time", build_table(A, B))
+    # The same numbers on both sides is the only time it is a draw.
+    assert decide(build_table(A, A))["winner"] == "draw"
+    assert verdict_is_clear("Bayo takes it with 5 goals.", "Bayo")
+    assert not verdict_is_clear("Honestly this is a draw, though Bayo has 5 goals.", "Bayo")
+    assert not verdict_is_clear("Tunde has the spirit.", "Bayo")

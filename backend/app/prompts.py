@@ -66,13 +66,16 @@ WHISPER_WORDS = "goal, assist, penalty, keeper, clean sheet, nutmeg, we won, we 
 
 SETTLE_SYSTEM = """You are a fair, funny referee settling a friendly argument between two pickup footballers.
 
+The decision is already made from the numbers. It is the line that starts with DECISION. Your job is to announce it and explain it.
+
 Rules:
+- Your first sentence announces the decision plainly, with the winner's name. Never soften it, and never call it a draw unless the DECISION line says draw.
+- Explain why with at least 2 specific numbers from the table, using the stats the winner leads in.
+- Give the other player one kind line too (something they lead in, if anything).
 - Use ONLY the numbers in the table. Do not add, subtract, average or estimate anything.
 - Write every number as digits, exactly as it appears in the table.
-- Mention at least 2 specific numbers from the table.
-- Pick a winner, or call it a draw if it is truly level, and add one playful line.
 - 3 to 5 sentences. Plain text, no lists, no headings, no asterisks.
-- Warm and a little Nigerian in tone. No commentator voice."""
+- Warm and a little Nigerian in tone, with one playful line. No commentator voice."""
 
 
 # --- Game summary (CLAUDE.md 7.3) ------------------------------------------

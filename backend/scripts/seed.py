@@ -1,11 +1,18 @@
 """Demo data: one pitch, 10 players and 3 played games with confirmed stats,
 so the leaderboards and "Settle it" have something to show.
 
-Opt-in only. From the backend folder:
-    python scripts/seed.py
+Demo data never goes into the real database. It goes into its own database,
+"starboy_demo", on the same Atlas cluster. From the backend folder:
 
-Running it again replaces the old demo data. Every demo player can sign in
-with phone 0800 000 00XX (01 to 10) and PIN 1234.
+    python scripts/seed.py             fill the demo database
+    python scripts/seed.py --remove    empty it again
+
+To look at it, start the app on the demo database:
+
+    $env:MONGODB_DB = "starboy_demo"; .\run.ps1
+
+(Close that window afterwards: a new window is back on the real database.)
+Every demo player can sign in with phone 0800 000 00XX (01 to 10) and PIN 1234.
 """
 
 import asyncio
@@ -20,6 +27,7 @@ from app import db  # noqa: E402
 from app.auth import hash_pin  # noqa: E402
 from app.util import WAT, now  # noqa: E402
 
+DEMO_DATABASE = "starboy_demo"
 PITCH_NAME = "Star Boy Demo Pitch"
 
 # name, nickname, position. The first five are team A, the rest team B.
@@ -51,11 +59,11 @@ def phone(i: int) -> str:
     return f"+2348000000{i + 1:03d}"
 
 
-async def run() -> None:
+async def remove() -> int:
+    """Delete the demo pitch, the demo players and everything that hangs off
+    them. Nothing else is touched. Returns how many demo players were removed."""
     database = db.get_db()
     phones = [phone(i) for i in range(len(PLAYERS))]
-
-    # 1. Remove the old demo data.
     old_users = [u["_id"] for u in await database.users.find({"phone": {"$in": phones}}).to_list(None)]
     old_pitch = await database.pitches.find_one({"name": PITCH_NAME, "seed": True})
     if old_pitch:
@@ -66,7 +74,17 @@ async def run() -> None:
         await database.pitches.delete_one({"_id": old_pitch["_id"]})
     await database.claims.delete_many({"user_id": {"$in": old_users}})
     await database.registrations.delete_many({"user_id": {"$in": old_users}})
+    await database.jobs.delete_many({"input.user_id": {"$in": old_users}})
     await database.users.delete_many({"_id": {"$in": old_users}})
+    return len(old_users)
+
+
+async def run() -> None:
+    database = db.get_db()
+    phones = [phone(i) for i in range(len(PLAYERS))]
+
+    # 1. Remove the old demo data.
+    await remove()
 
     # 2. The pitch and its players.
     pin_hash = hash_pin("1234")
@@ -118,14 +136,20 @@ async def run() -> None:
             })
         await database.claims.insert_many(claims)
 
-    print(f"Seeded '{PITCH_NAME}': {len(ids)} players, {len(GAMES)} games.")
+    print(f"Seeded '{PITCH_NAME}' in database '{database.name}': {len(ids)} players, {len(GAMES)} games.")
     print("Sign in as any of them: phone 0800 000 0001 (to 0010), PIN 1234.")
 
 
 async def main() -> None:
+    # Point the app's database setting at the demo database, never the real one.
+    db.settings.mongodb_db = DEMO_DATABASE
     db.connect()
     try:
-        await run()
+        if "--remove" in sys.argv:
+            count = await remove()
+            print(f"Removed the demo pitch and {count} demo players from '{db.get_db().name}'.")
+        else:
+            await run()
     finally:
         db.close()
 
