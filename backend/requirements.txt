@@ -1,10 +1,11 @@
+# What the app always needs. This is all the deployed server installs:
+# in cloud mode (AI_MODE=cloud) no AI model runs on the server itself.
 fastapi
 uvicorn[standard]
 python-multipart
 pydantic>=2
 pydantic-settings
 motor
+dnspython
 httpx
-faster-whisper
-pywebpush
 python-jose

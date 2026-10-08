@@ -14,7 +14,7 @@ Rules:
 - "saves" and "clean_sheet" are only for a speaker who says they were in goal (keeper, "I dey post"). clean_sheet is true if they kept goal and the other team scored 0, false if the other team scored.
 - "assisted_players": teammates the speaker says they gave an assist to. Use the spelling from the player list when a name matches.
 - "highlight": one short line in the player's own spirit, max 15 words. null if there is nothing to say.
-- "unclear": short notes on anything you weren't sure about. Empty list if all was clear.
+- "unclear": short notes on anything you weren't sure about. Empty list if all was clear. A short name or nickname that fits a listed player ("Emeka" for "Chukwuemeka Obi") is NOT unclear.
 - If the text is not about a football game, set every field to null and say so in "unclear".
 
 Nigerian Pidgin and football slang:
@@ -69,9 +69,10 @@ SETTLE_SYSTEM = """You are a fair, funny referee settling a friendly argument be
 The decision is already made from the numbers. It is the line that starts with DECISION. Your job is to announce it and explain it.
 
 Rules:
-- Your first sentence announces the decision plainly, with the winner's name. Never soften it, and never call it a draw unless the DECISION line says draw.
+- Your first sentence announces the decision in your own words, with the winner's name. Do not write the word DECISION. Never soften it, and never call it a draw unless the DECISION line says draw.
 - Explain why with at least 2 specific numbers from the table, using the stats the winner leads in.
-- Give the other player one kind line too (something they lead in, if anything).
+- Every number you give a player must be that player's own number from their column of the table.
+- Give the other player one kind line too. Only say they lead in something if the "leads in" line lists it. If they lead in nothing, just encourage them, with no numbers.
 - Use ONLY the numbers in the table. Do not add, subtract, average or estimate anything.
 - Write every number as digits, exactly as it appears in the table.
 - 3 to 5 sentences. Plain text, no lists, no headings, no asterisks.

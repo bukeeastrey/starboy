@@ -1,3 +1,3 @@
-# Only for running the tests on your computer (not installed in Docker).
--r requirements.txt
+# Everything for working on Star Boy on your computer, plus the tests.
+-r requirements-local.txt
 pytest

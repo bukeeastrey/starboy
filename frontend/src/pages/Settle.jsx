@@ -140,9 +140,9 @@ function Verdict({ result, verdict, pitch }) {
         <table className="versus">
           <thead>
             <tr>
-              <th><Avatar user={players.a} size={44} /><br />{names.a}</th>
+              <th><Avatar user={players.a} size={44} /><br />{names.a}{result.winner === "a" && " 🏆"}</th>
               <th></th>
-              <th><Avatar user={players.b} size={44} /><br />{names.b}</th>
+              <th><Avatar user={players.b} size={44} /><br />{names.b}{result.winner === "b" && " 🏆"}</th>
             </tr>
           </thead>
           <tbody>

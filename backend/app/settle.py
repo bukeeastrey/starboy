@@ -3,6 +3,8 @@
 The code builds the comparison table from CONFIRMED stats. Gemma only writes
 the verdict's words, and verify.py checks it used no number of its own."""
 
+import re
+
 from bson import ObjectId
 
 from . import jobs, prompts, verify
@@ -145,9 +147,39 @@ def facts_text(name_a: str, name_b: str, scope: str, table: list[dict]) -> str:
 def verdict_is_clear(text: str, winner_name: str | None) -> bool:
     """The verdict must name the winner the code picked, and not hedge."""
     lowered = text.lower()
+    if "decision" in lowered:
+        return False  # it copied our instruction line instead of writing its own
     if winner_name is None:
         return "draw" in lowered
     return winner_name.lower() in lowered and "draw" not in lowered
+
+
+def numbers_belong(text: str, name_a: str, name_b: str, table: list[dict]) -> bool:
+    """Is each number given to the right player?
+
+    verify.py only knows a number is somewhere in the table. This catches
+    "Tunde has 5 goals" when the 5 is Bayo's. It looks at each sentence that
+    names exactly ONE player, a stat and some numbers: that player's own value
+    for the stat must be among the numbers."""
+    # Longest labels first, so "Goals per game" isn't read as "Goals".
+    rows = sorted(table, key=lambda row: -len(row["label"]))
+    for sentence in re.split(r"(?<=[.!?])\s+", text):
+        lowered = sentence.lower()
+        has_a, has_b = name_a.lower() in lowered, name_b.lower() in lowered
+        if has_a == has_b:
+            continue  # both players or neither: can't tell whose number it is
+        said = verify.numbers_in(sentence)
+        if not said:
+            continue
+        for row in rows:
+            label = row["label"].lower()
+            if label not in lowered:
+                continue
+            lowered = lowered.replace(label, " ")
+            own_value = float((row["a"] if has_a else row["b"]).rstrip("%"))
+            if own_value not in said:
+                return False
+    return True
 
 
 def template_verdict(name_a: str, name_b: str, reports_a: list[dict], reports_b: list[dict]) -> str:
@@ -204,4 +236,6 @@ async def write_verdict(job: dict) -> dict:
     await jobs.set_stage(job["_id"], "thinking")
     return await verify.write_with_facts(
         prompts.SETTLE_SYSTEM, data["facts"], lambda: data["fallback"],
-        also_check=lambda text: verdict_is_clear(text, data.get("winner_name")))
+        also_check=lambda text: (
+            verdict_is_clear(text, data.get("winner_name"))
+            and numbers_belong(text, data["names"]["a"], data["names"]["b"], data["table"])))

@@ -84,3 +84,15 @@ def test_the_code_picks_a_clear_winner():
     assert verdict_is_clear("Bayo takes it with 5 goals.", "Bayo")
     assert not verdict_is_clear("Honestly this is a draw, though Bayo has 5 goals.", "Bayo")
     assert not verdict_is_clear("Tunde has the spirit.", "Bayo")
+
+
+def test_numbers_must_belong_to_the_right_player():
+    from app.settle import numbers_belong
+    table = build_table(A, B)  # Tunde: 3 goals, streak 0. Bayo: 5 goals, streak 1.
+    assert numbers_belong("Bayo wins it. Bayo has 5 goals and 1.67 goals per game.", "Tunde", "Bayo", table)
+    # The 1 is Bayo's streak, not Tunde's.
+    assert not numbers_belong("Tunde is still king of the current win streak with 1.", "Tunde", "Bayo", table)
+    assert not numbers_belong("Tunde scored 5 goals.", "Tunde", "Bayo", table)
+    # A sentence naming both players can't be checked, so it passes.
+    assert numbers_belong("Bayo has 5 goals to Tunde's 3 goals.", "Tunde", "Bayo", table)
+    assert numbers_belong("Tunde, keep your head up!", "Tunde", "Bayo", table)

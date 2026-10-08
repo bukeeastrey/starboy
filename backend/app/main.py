@@ -47,7 +47,9 @@ async def lifespan(app: FastAPI):
         # On the laptop the bot asks Telegram for messages itself.
         # (Deployed, Telegram calls /api/telegram/webhook instead.)
         background.append(asyncio.create_task(bot.poll_forever()))
-    log.info("Telegram bot mode: %s", settings.bot_mode)
+    elif settings.bot_mode == "webhook":
+        background.append(asyncio.create_task(bot.register_webhook()))
+    log.info("AI mode: %s. Telegram bot mode: %s.", settings.ai_mode, settings.bot_mode)
     yield
     for task in background:
         task.cancel()
@@ -70,7 +72,8 @@ app.include_router(settle.router)
 @app.get("/api/health")
 async def health():
     """Is the server up, and can it reach MongoDB?"""
-    return {"status": "ok", "db": await db.ping()}
+    return {"status": "ok", "db": await db.ping(), "ai_mode": settings.ai_mode,
+            "bot_mode": settings.bot_mode}
 
 
 # In production (Docker) there is no Vite dev server: FastAPI serves the built

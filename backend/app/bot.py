@@ -418,6 +418,25 @@ async def tap_looks_right(user, chat_id, message_id, old_text, job_id) -> str:
     return "Submitted ✅"
 
 
+# --- Webhook mode (the deployed app) -------------------------------------------
+
+async def register_webhook() -> None:
+    """Tell Telegram to send updates to this server. Run at every start: it is
+    harmless to repeat, and it means a fresh deploy needs no manual step."""
+    if not settings.telegram_webhook_secret:
+        log.error("TELEGRAM_WEBHOOK_SECRET is not set, so the bot can't receive messages.")
+        return
+    url = f"{settings.public_base_url}/api/telegram/webhook"
+    ok = await telegram.call(
+        "setWebhook", url=url, secret_token=settings.telegram_webhook_secret,
+        allowed_updates=["message", "callback_query"],
+    )
+    if ok:
+        log.info("Telegram webhook is set to %s", url)
+    else:
+        log.error("Telegram refused the webhook for %s", url)
+
+
 # --- Polling mode (the laptop) -----------------------------------------------
 
 async def poll_forever() -> None:

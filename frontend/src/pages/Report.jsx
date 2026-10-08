@@ -270,7 +270,7 @@ function Processing({ jobId, onDone }) {
       <div className="pulse">⭐</div>
       <p><strong>{text}</strong></p>
       <p className="muted">
-        This takes up to a minute: the AI runs on Star Boy's own small server, not a big cloud.
+        This can take up to a minute. Open models do the listening: Whisper and Gemma.
       </p>
     </div>
   );

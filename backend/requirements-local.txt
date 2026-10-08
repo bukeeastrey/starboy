@@ -1,0 +1,4 @@
+# For AI_MODE=local: Whisper running on your own computer.
+# (Gemma runs in Ollama, which is installed separately.)
+-r requirements.txt
+faster-whisper

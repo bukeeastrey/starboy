@@ -2,7 +2,7 @@
 
 From the backend folder:
     python scripts/set_webhook.py            use PUBLIC_BASE_URL from .env
-    python scripts/set_webhook.py https://<user>-starboy.hf.space
+    python scripts/set_webhook.py https://starboy.onrender.com
     python scripts/set_webhook.py --delete   remove the webhook (laptop polling works again)
     python scripts/set_webhook.py --info     show what is set now
 
@@ -41,7 +41,7 @@ async def main() -> None:
 
     base = (argument or settings.public_base_url).rstrip("/")
     if not base.startswith("https://"):
-        sys.exit("Give the public https address, e.g. https://<user>-starboy.hf.space")
+        sys.exit("Give the public https address, e.g. https://starboy.onrender.com")
     if not settings.telegram_webhook_secret:
         sys.exit("TELEGRAM_WEBHOOK_SECRET is not set in .env")
 

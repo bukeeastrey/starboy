@@ -98,7 +98,7 @@ export default function App() {
       )}
       <main className="main">{screen}</main>
       <footer className="badge">
-        AI: Gemma + Whisper, open models running on Star Boy's own server
+        AI: Gemma + Whisper, open-weight models
       </footer>
     </div>
   );

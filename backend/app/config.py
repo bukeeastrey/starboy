@@ -3,6 +3,7 @@ or from the ".env" file in the project root (which is never committed)."""
 
 from pathlib import Path
 
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # backend/app/config.py -> the project root is two folders up from "app".
@@ -32,11 +33,32 @@ class Settings(BaseSettings):
     # which signs everybody out whenever the server restarts.
     session_secret: str = ""
 
-    # The public address of the app, e.g. "https://<user>-starboy.hf.space".
-    # Empty while developing on the laptop.
+    # The public address of the app, e.g. "https://starboy.onrender.com".
+    # Empty while developing on the laptop. On Render you don't need to set
+    # it: Render puts the service's address in RENDER_EXTERNAL_URL.
     public_base_url: str = ""
+    render_external_url: str = ""
 
-    # The open models (both run on this machine's CPU).
+    @model_validator(mode="after")
+    def use_render_address(self):
+        if not self.public_base_url and self.render_external_url:
+            self.public_base_url = self.render_external_url
+        self.public_base_url = self.public_base_url.rstrip("/")
+        return self
+
+    # Where the AI runs:
+    #   "local"  Gemma through Ollama + faster-whisper, on this machine's CPU.
+    #   "cloud"  Gemma 4 through the Gemini API + Whisper at Groq (free tiers),
+    #            for small free servers that can't hold a model.
+    ai_mode: str = "local"
+
+    # Cloud mode. The keys come from aistudio.google.com and console.groq.com.
+    gemini_api_key: str = ""
+    gemini_model: str = "gemma-4-26b-a4b-it"
+    groq_api_key: str = ""
+    groq_whisper_model: str = "whisper-large-v3"
+
+    # Local mode: the open models, both on this machine's CPU.
     ollama_url: str = "http://127.0.0.1:11434"
     ollama_model: str = "gemma4:e2b-it-qat"
     whisper_model: str = "small"

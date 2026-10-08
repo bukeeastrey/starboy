@@ -1,0 +1,38 @@
+# Render "Blueprint": describes the free web service that runs Star Boy.
+# In Render: New > Blueprint > pick this repository. Render reads this file,
+# then asks you for the values marked "sync: false" (the secrets).
+
+services:
+  - type: web
+    name: starboy
+    runtime: docker
+    plan: free
+    region: frankfurt # the Render region closest to Lagos
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      # --- not secret ---
+      - key: AI_MODE
+        value: cloud
+      - key: MONGODB_DB
+        value: starboy
+      # Render makes a random one for you.
+      - key: SESSION_SECRET
+        generateValue: true
+
+      # --- secrets: Render asks for these; paste them from your .env ---
+      - key: MONGODB_URI
+        sync: false
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: TELEGRAM_WEBHOOK_SECRET
+        sync: false
+      - key: CRON_TOKEN
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+
+# PUBLIC_BASE_URL is not needed here: Render gives every service its address
+# in RENDER_EXTERNAL_URL, and the app uses that.
