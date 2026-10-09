@@ -8,6 +8,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 
 from . import bot, db, jobs, llm, prompts, scheduler, setup
+from . import telegram as tg
 from . import pipeline, summary  # noqa: F401  (importing them registers their AI jobs)
 from .config import AUDIO_DIR, FRONTEND_DIST, settings
 from .routes import games, home, photos, pitches, players, reports, settle, telegram, users
@@ -49,6 +50,9 @@ async def lifespan(app: FastAPI):
         background.append(asyncio.create_task(bot.poll_forever()))
     elif settings.bot_mode == "webhook":
         background.append(asyncio.create_task(bot.register_webhook()))
+    if settings.bot_mode != "off":
+        # What Telegram's "Menu" button lists.
+        background.append(asyncio.create_task(tg.set_commands()))
     log.info("AI mode: %s. Telegram bot mode: %s.", settings.ai_mode, settings.bot_mode)
     yield
     for task in background:

@@ -1,6 +1,7 @@
 """A small client for the Telegram Bot API (plain HTTPS calls with httpx)."""
 
 import asyncio
+import json
 import logging
 from pathlib import Path
 
@@ -62,13 +63,70 @@ def keyboard(rows: list[list[tuple[str, str]]]) -> dict:
     ]}
 
 
-async def send(chat_id: int, text: str, buttons: list[list[tuple[str, str]]] | None = None) -> dict | None:
-    """Send a message (HTML formatting), with optional buttons."""
+def reply_keyboard(rows: list[list], one_time: bool = False) -> dict:
+    """The buttons that sit under the chat box (not under one message).
+    A button is its label, or a dict such as
+    {"text": "Share my number 📱", "request_contact": True}."""
+    return {
+        "keyboard": [[{"text": b} if isinstance(b, str) else b for b in row] for row in rows],
+        "resize_keyboard": True,
+        "is_persistent": not one_time,
+        "one_time_keyboard": one_time,
+    }
+
+
+async def send(chat_id: int, text: str, buttons: list[list[tuple[str, str]]] | None = None,
+               reply_markup: dict | None = None) -> dict | None:
+    """Send a message (HTML formatting). `buttons` go under the message;
+    `reply_markup` is for anything else (a reply keyboard, say)."""
     params = {"chat_id": chat_id, "text": text, "parse_mode": "HTML",
               "disable_web_page_preview": True}
     if buttons:
         params["reply_markup"] = keyboard(buttons)
+    elif reply_markup:
+        params["reply_markup"] = reply_markup
     return await call("sendMessage", **params)
+
+
+async def send_photo(chat_id: int, image: bytes, caption: str = "",
+                     buttons: list[list[tuple[str, str]]] | None = None) -> dict | None:
+    """Send a picture (PNG or JPEG bytes) with a caption and optional buttons.
+    Files must be uploaded as a form, so this doesn't go through call()."""
+    if not settings.telegram_bot_token:
+        return None
+    form = {"chat_id": str(chat_id), "caption": caption, "parse_mode": "HTML"}
+    if buttons:
+        form["reply_markup"] = json.dumps(keyboard(buttons))
+    url = f"{API}/bot{settings.telegram_bot_token}/sendPhoto"
+    try:
+        async with httpx.AsyncClient(timeout=60) as client:
+            data = (await client.post(url, data=form, files={"photo": ("starboy.png", image)})).json()
+    except Exception as error:
+        log.warning("Telegram sendPhoto failed: %s", type(error).__name__)
+        return None
+    if not data.get("ok"):
+        log.warning("Telegram sendPhoto refused: %s", data.get("description"))
+        return None
+    return data["result"]
+
+
+# What the Telegram "Menu" button lists.
+COMMANDS = [
+    ("newgame", "Set up a game"),
+    ("mygames", "Your games"),
+    ("pitches", "Pitches near you"),
+    ("leaderboard", "Leaderboards"),
+    ("report", "Tell me how your game went"),
+    ("settle", "Settle it: who's been better?"),
+    ("card", "Your player card"),
+    ("menu", "Show the menu buttons"),
+    ("help", "What Star Boy can do"),
+]
+
+
+async def set_commands() -> None:
+    """Tell Telegram the bot's command list. Run at every start."""
+    await call("setMyCommands", commands=[{"command": c, "description": d} for c, d in COMMANDS])
 
 
 async def send_many(chat_ids: list[int], text: str, buttons=None) -> int:

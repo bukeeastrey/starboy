@@ -13,7 +13,7 @@ from bson import ObjectId
 from bson.errors import InvalidId
 from fastapi import HTTPException
 
-from . import consensus, jobs, notify, photos, stats, tapflow, telegram
+from . import botmenu, consensus, flows, jobs, notify, photos, stats, tapflow, telegram
 from .config import AUDIO_DIR, settings
 from .db import get_db
 from .routes.games import game_phase, invite_of, set_rsvp
@@ -25,15 +25,7 @@ log = logging.getLogger("starboy.bot")
 MAX_VOICE_SECONDS = 90
 REPORT_WINDOW = timedelta(days=7)  # how far back a game can still be reported
 
-HELP = (
-    "<b>Star Boy</b> ⭐ gets you out of your room and onto the pitch.\n\n"
-    "/next: your next game\n"
-    "/report: tell me how your last game went\n"
-    "/leaderboard: top players at your pitch\n"
-    "/help: this message\n\n"
-    "After a game, send me a <b>voice note</b> about how you played, "
-    "or a <b>photo</b> for the match gallery."
-)
+HELP = botmenu.HELP
 SORRY = "I couldn't make that out. Try another voice note or type it 🙏"
 
 
@@ -73,8 +65,17 @@ async def on_message(message: dict) -> None:
 
     user = await user_for(chat_id)
     if not user:
-        await telegram.send(chat_id, f"Welcome to Star Boy! ⭐ Sign up here: {site()}, "
-                                     "then tap <b>Connect Telegram</b>.")
+        # No account yet: sign them up right here, one question at a time.
+        if not await botmenu.signup_message(chat_id, message):
+            await botmenu.begin_signup(chat_id, message["from"])
+        return
+
+    # A main-menu button (or a /command) always wins: whatever the player was
+    # in the middle of is dropped, so nobody can get stuck in a flow.
+    action = botmenu.action_for(text)
+    if action:
+        await flows.clear(chat_id)
+        await run_menu(action, user, chat_id)
         return
 
     if message.get("photo"):
@@ -87,22 +88,50 @@ async def on_message(message: dict) -> None:
             await telegram.send(chat_id, "That one long o! Keep it under 90 seconds and send again.")
             return
         await on_report(user, chat_id, file_id=voice["file_id"])
-    elif text.startswith("/next"):
-        await cmd_next(user, chat_id)
-    elif text.startswith("/report"):
-        await cmd_report(user, chat_id)
-    elif text.startswith("/leaderboard"):
-        await cmd_leaderboard(user, chat_id)
-    elif text.startswith("/"):
-        await telegram.send(chat_id, HELP)
+        return
+
+    # In the middle of a flow that is waiting for something typed or shared?
+    if await flow_message(user, chat_id, message):
+        return
+    if await flows.was_expired(chat_id):
+        await botmenu.show(chat_id, flows.EXPIRED)
+        return
+
+    if text.startswith("/"):
+        await botmenu.show(chat_id, HELP)
     elif text:
-        # A typed message can be three things. Try the two specific ones first:
-        # the exact number after tapping "4+", or the creator's "5-3" final score.
+        # A typed message can still be three things. Try the two specific ones
+        # first: the exact number after tapping "4+", or the creator's "5-3" score.
         if await tapflow.on_number(user, chat_id, text):
             return
         if await tapflow.on_score_text(user, chat_id, text):
             return
         await on_report(user, chat_id, text=text)
+
+
+async def run_menu(action: str, user: dict, chat_id: int) -> None:
+    """Do what a main-menu button asks."""
+    if action == "menu":
+        await botmenu.show(chat_id, "Here's the menu. 👇")
+    elif action == "help":
+        await botmenu.show(chat_id, HELP)
+    elif action == "open":
+        await botmenu.open_web(user, chat_id)
+    elif action == "report":
+        await cmd_report(user, chat_id)
+    elif action == "mygames":
+        await cmd_next(user, chat_id)
+    elif action == "leaderboards":
+        await cmd_leaderboard(user, chat_id)
+    else:
+        # Not built into the chat yet: open that part of the app instead.
+        await botmenu.open_web(user, chat_id)
+
+
+async def flow_message(user: dict, chat_id: int, message: dict) -> bool:
+    """Hand a typed message (or shared contact / location) to the flow the
+    chat is in. Returns False if no flow wanted it."""
+    return False
 
 
 async def on_start(message: dict, text: str) -> None:
@@ -114,10 +143,10 @@ async def on_start(message: dict, text: str) -> None:
     if not token:
         user = await user_for(chat_id)
         if user:
-            await telegram.send(chat_id, f"You're already connected, {escape(display_name(user))}! ⚽\n\n{HELP}")
+            await flows.clear(chat_id)
+            await botmenu.show(chat_id, f"How far, {escape(display_name(user))}? ⚽\n\n{HELP}")
         else:
-            await telegram.send(chat_id, f"Welcome to Star Boy! ⭐ Sign up here: {site()}, "
-                                         "then tap <b>Connect Telegram</b>.")
+            await botmenu.begin_signup(chat_id, message["from"])
         return
 
     # The token was made by the web app for one signed-in user (see routes/telegram.py).
@@ -138,8 +167,10 @@ async def on_start(message: dict, text: str) -> None:
         "telegram_linked_at": now(),
     }})
     user = await db.users.find_one({"_id": link["user_id"]})
-    await telegram.send(chat_id, f"You're connected, {escape(display_name(user))}! "
-                                 "I'll remind you about games at your pitches. ⚽")
+    await flows.clear(chat_id)
+    await botmenu.show(chat_id, f"You're connected, {escape(display_name(user))}! "
+                                "I'll remind you about games at your pitches. ⚽\n\n"
+                                "The buttons below do everything.")
 
 
 # --- Commands --------------------------------------------------------------
@@ -406,8 +437,20 @@ async def on_tap(tap: dict) -> None:
     action, _, rest = tap.get("data", "").partition(":")
 
     user = await user_for(tap["from"]["id"])
+
+    if action == "x":  # ✖️ Cancel, on every step of every flow
+        await flows.clear(chat_id)
+        await telegram.edit(chat_id, message_id, "Cancelled. 👍")
+        await telegram.answer_tap(tap["id"])
+        return
+    if action == "su":  # a button while signing up (no account yet)
+        toast = await botmenu.signup_tap(chat_id, message_id, rest)
+        if toast == flows.EXPIRED:
+            await telegram.edit(chat_id, message_id, flows.EXPIRED + "\nSend /start to begin.")
+        await telegram.answer_tap(tap["id"])
+        return
     if not user:
-        await telegram.answer_tap(tap["id"], "Connect Telegram in the Star Boy app first.")
+        await telegram.answer_tap(tap["id"], "Send /start to join Star Boy first.")
         return
 
     try:

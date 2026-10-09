@@ -4,6 +4,7 @@ import re
 import time
 
 from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 from pymongo.errors import DuplicateKeyError
 
@@ -40,7 +41,7 @@ def me_view(user: dict) -> dict:
     """What a user sees about themselves (the only place a phone is returned)."""
     return {
         **public_user(user),
-        "phone": user["phone"],
+        "phone": user.get("phone", ""),
         # For the "Connect Telegram 🔔" card on the Home screen.
         "telegram_available": telegram.enabled(),
         "telegram_linked": bool(user.get("telegram_chat_id")),
@@ -84,13 +85,27 @@ async def signin(body: SignIn, response: Response):
         raise HTTPException(429, "Too many wrong tries. Wait 10 minutes and try again.")
 
     user = await get_db().users.find_one({"phone": phone})
-    if not user or not verify_pin(body.pin, user["pin_hash"]):
+    # An account made in Telegram has no PIN: it signs in from the bot instead.
+    if not user or not user.get("pin_hash") or not verify_pin(body.pin, user["pin_hash"]):
         _wrong_pins[phone] = recent + [time.time()]
         raise HTTPException(401, "Wrong phone number or PIN.")
 
     _wrong_pins.pop(phone, None)
     set_session_cookie(response, user["_id"])
     return me_view(user)
+
+
+@router.get("/auth/magic")
+async def magic_login(token: str = ""):
+    """The one-time link the Telegram bot sends ("🌐 Open Star Boy"): signs
+    the player in without a PIN and sends them to the app. It works once,
+    and only for 10 minutes."""
+    link = await get_db().login_tokens.find_one_and_delete(
+        {"_id": token, "expires_at": {"$gt": now()}})
+    response = RedirectResponse("/" if link else "/signin", status_code=303)
+    if link:
+        set_session_cookie(response, link["user_id"])
+    return response
 
 
 @router.post("/auth/signout")
