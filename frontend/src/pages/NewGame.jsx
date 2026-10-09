@@ -61,7 +61,7 @@ export default function NewGame({ id, user }) {
 
   return (
     <form className="form" onSubmit={submit}>
-      <h2>New game at {pitch.name} ⚽</h2>
+      <h2>New game at {pitch.name}</h2>
 
       <div className="button-row">
         <label>

@@ -1,75 +1,129 @@
-/* Colours live in variables so light and dark mode only change this block. */
+/* Star Boy: "floodlights at night".
+   A pitch under lights: near-black green, chalk-white lines, one gold accent.
+   Every colour is a variable, set once here. */
 :root {
-  --green: #0e5a3a; /* pitch green */
-  --gold: #f5c518; /* Golden Boot / Star Boy */
-  --red: #c0392b;
-  --bg: #f3f6f4;
-  --card: #ffffff;
-  --text: #14211b;
-  --muted: #5d6b64;
-  --border: #dde5e0;
-  --link: #0e5a3a;
-}
+  --night: #050d09; /* the sky behind the floodlights */
+  --turf: #0a1a13; /* panels */
+  --turf-lit: #10271c; /* raised or pressed panels */
+  --chalk: #f1f4ee; /* text, and the pitch lines */
+  --chalk-dim: #9aaca1; /* secondary text */
+  --line: rgba(241, 244, 238, 0.16); /* a chalk line */
+  --line-faint: rgba(241, 244, 238, 0.07);
+  --gold: #f5c518; /* the only accent */
+  --red: #ff6b5b;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #0b1410;
-    --card: #15221c;
-    --text: #eef4f0;
-    --muted: #9db0a6;
-    --border: #25362d;
-    --link: #6fd3a3;
-    --red: #ff8a7a;
-  }
+  --display: "Anton", "Arial Narrow", Impact, sans-serif; /* headings, scoreboard numbers */
+  --body: "Barlow", system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  /* The old names, still used in a few inline places. */
+  --bg: var(--night);
+  --card: var(--turf);
+  --text: var(--chalk);
+  --muted: var(--chalk-dim);
+  --border: var(--line);
+  --green: var(--turf-lit);
+  --link: var(--gold);
+  color-scheme: dark;
 }
 
 * {
   box-sizing: border-box;
 }
 
+html {
+  background: var(--night);
+}
+
 body {
   margin: 0;
-  background: var(--bg);
-  color: var(--text);
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  line-height: 1.4;
+  background: var(--night);
+  color: var(--chalk);
+  font-family: var(--body);
+  font-size: 17px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* The pitch markings behind every screen: half of a centre circle at the
+   top, and the halfway line running down. Fixed, faint, never in the way. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 50% -40px, transparent 0 198px, var(--line-faint) 199px 201px, transparent 202px),
+    linear-gradient(90deg, transparent calc(50% - 1px), var(--line-faint) calc(50% - 1px) calc(50% + 1px), transparent calc(50% + 1px)),
+    radial-gradient(ellipse 90% 50% at 50% -10%, rgba(40, 110, 76, 0.28), transparent 70%);
 }
 
 a {
-  color: var(--link);
+  color: var(--gold);
+  text-underline-offset: 3px;
 }
 
 h1, h2, h3, p {
   margin: 0;
 }
 
-h1 {
-  margin: 16px 0 4px;
-  font-size: 2.2rem;
+/* Headings are condensed capitals, like a stadium scoreboard. */
+h1, h2 {
+  font-family: var(--display);
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  line-height: 1.02;
 }
 
+h1 {
+  font-size: 2.6rem;
+}
+
+h2 {
+  font-size: 2rem;
+}
+
+/* Section labels: small, spaced capitals with a chalk line running off. */
 h3 {
-  font-size: 1rem;
-  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--body);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--chalk-dim);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.14em;
+}
+
+h3::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+
+strong {
+  font-weight: 700;
 }
 
 /* --- Layout ------------------------------------------------------------ */
 
 /* A phone-width column, centred on bigger screens. */
 .app {
-  max-width: 430px;
+  max-width: 480px;
   min-height: 100vh;
+  min-height: 100svh;
   margin: 0 auto;
-  padding: 0 16px;
+  padding: 0 18px;
   display: flex;
   flex-direction: column;
 }
 
 .main {
   flex: 1;
-  padding: 16px 0;
+  padding: 20px 0 28px;
   display: flex;
   flex-direction: column;
 }
@@ -77,31 +131,37 @@ h3 {
 .topbar {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin: 0 -16px;
-  padding: 10px 16px;
-  background: var(--green);
-  color: #fff;
+  gap: 14px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
 }
 
 .brand {
   flex: 1;
-  color: #fff;
-  font-weight: 800;
-  font-size: 1.15rem;
   text-decoration: none;
-  padding: 10px 0; /* a taller tap target */
+  color: var(--chalk);
 }
 
-.topbar .link-button {
-  color: #fff;
+.wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--display);
+  font-size: 1.35rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  line-height: 1;
 }
 
-/* Children stacked with the same gap between them. */
+.crest {
+  flex-shrink: 0;
+  display: block;
+}
+
 .stack {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
 }
 
 .center {
@@ -109,80 +169,79 @@ h3 {
 }
 
 .muted {
-  color: var(--muted);
+  color: var(--chalk-dim);
   font-weight: 400;
 }
 
 .badge {
-  padding: 16px 0 12px;
+  padding: 18px 0 16px;
+  border-top: 1px solid var(--line);
+  color: var(--chalk-dim);
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
   text-align: center;
-  color: var(--muted);
-  font-size: 0.8rem;
 }
 
-/* --- Welcome ----------------------------------------------------------- */
-
-.welcome {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  gap: 12px;
+.badge a {
+  color: inherit;
 }
 
-.logo {
-  width: 88px;
-  height: 88px;
-  border-radius: 50%;
-  background: var(--green);
-  font-size: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 0 0 4px var(--gold);
-}
+/* --- Panels, rows, lists ----------------------------------------------- */
 
-.tagline {
-  margin-bottom: 12px;
-  color: var(--muted);
-  font-size: 1.1rem;
-}
-
-/* --- Cards, rows, lists ------------------------------------------------ */
-
+/* A panel: flat, squared, outlined in chalk. No drop shadows, no pills. */
 .card {
   width: 100%;
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 14px;
+  background: var(--turf);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  padding: 16px;
 }
 
+/* A panel that matters right now gets a gold edge down its left side. */
+.highlight {
+  border-left: 3px solid var(--gold);
+  background: linear-gradient(100deg, rgba(245, 197, 24, 0.07), transparent 55%), var(--turf);
+}
+
+/* Lists read like a team sheet: rows divided by chalk lines. */
 .list {
   list-style: none;
   margin: 0;
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  border-top: 1px solid var(--line);
+}
+
+.list > li,
+.list > a {
+  border-bottom: 1px solid var(--line);
+}
+
+.list .card {
+  background: none;
+  border: none;
+  border-radius: 0;
+  padding: 12px 2px;
 }
 
 .row {
   display: flex;
   align-items: center;
   gap: 12px;
-  min-height: 60px;
-  color: var(--text);
+  min-height: 56px;
+  color: var(--chalk);
   text-decoration: none;
 }
 
-.row-icon {
-  font-size: 1.6rem;
+a.row:active {
+  background: var(--turf-lit);
 }
 
-/* The middle of a row: a bold line with a muted line under it. */
+.row-icon {
+  display: none;
+}
+
 .row-text {
   flex: 1;
   min-width: 0;
@@ -190,44 +249,80 @@ h3 {
   flex-direction: column;
 }
 
+.row-text > strong {
+  font-size: 1.05rem;
+}
+
+.row-text a,
+.row-text a:visited {
+  color: inherit;
+  text-decoration: none;
+}
+
 .player-name {
   font-weight: 700;
+  color: var(--chalk);
+  text-decoration: none;
+}
+
+a .player-name,
+a.player-name {
+  color: var(--chalk);
 }
 
 .avatar {
   flex-shrink: 0;
   border-radius: 50%;
   color: #fff;
-  font-weight: 700;
+  font-family: var(--display);
+  letter-spacing: 0.02em;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  box-shadow: 0 0 0 1px var(--line);
 }
 
+/* A status label: squared, small capitals. */
 .chip {
   flex-shrink: 0;
-  padding: 4px 10px;
-  border-radius: 999px;
-  background: var(--border);
-  font-size: 0.8rem;
+  padding: 4px 8px;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  color: var(--chalk-dim);
+  font-size: 0.7rem;
   font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
   white-space: nowrap;
 }
 
 .chip.gold {
-  background: var(--gold);
-  color: #14211b;
+  border-color: var(--gold);
+  color: var(--gold);
 }
 
 .chip.in {
-  background: var(--green);
-  color: #fff;
+  background: var(--gold);
+  border-color: var(--gold);
+  color: var(--night);
 }
 
 .chip.out {
-  background: transparent;
-  border: 1px solid var(--border);
-  color: var(--muted);
+  color: var(--chalk-dim);
+}
+
+/* A row that is a link on its own (a pitch, a fixture): a line under it,
+   no box around it. Two in a row share one line between them. */
+a.card.row {
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  padding: 12px 2px;
+}
+
+.stack > a.card.row + a.card.row {
+  margin-top: -14px;
 }
 
 /* --- Buttons ----------------------------------------------------------- */
@@ -236,55 +331,71 @@ h3 {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 48px;
-  padding: 10px 18px;
-  border: 2px solid var(--green);
-  border-radius: 12px;
-  background: var(--green);
-  color: #fff;
-  font: inherit;
+  min-height: 50px;
+  padding: 10px 20px;
+  border: 1px solid var(--chalk);
+  border-radius: 3px;
+  background: var(--chalk);
+  color: var(--night);
+  font-family: var(--body);
+  font-size: 0.92rem;
   font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  text-align: center;
   text-decoration: none;
   cursor: pointer;
+  transition: transform 0.08s ease;
+}
+
+.button:active {
+  transform: translateY(1px);
 }
 
 .button.big {
   width: 100%;
-  min-height: 56px;
-  font-size: 1.1rem;
+  min-height: 58px;
+  font-size: 1rem;
+}
+
+/* Gold is for the one thing we most want tapped on a screen. */
+.button.gold {
+  background: var(--gold);
+  border-color: var(--gold);
+  color: var(--night);
 }
 
 .button.secondary {
   background: transparent;
-  color: var(--link);
-  border-color: var(--border);
-}
-
-.button.gold {
-  background: var(--gold);
-  border-color: var(--gold);
-  color: #14211b;
+  color: var(--chalk);
+  border-color: var(--line);
 }
 
 .button.danger {
   background: transparent;
   color: var(--red);
-  border-color: var(--border);
+  border-color: var(--line);
+}
+
+.button.danger.selected {
+  background: var(--red);
+  border-color: var(--red);
+  color: var(--night);
 }
 
 .button:disabled {
-  opacity: 0.6;
+  opacity: 0.45;
   cursor: default;
 }
 
-/* Two buttons side by side, sharing the width. */
 .button-row {
   display: flex;
-  gap: 8px;
+  gap: 10px;
 }
 
 .button-row > * {
   flex: 1;
+  min-width: 0;
 }
 
 .link-button {
@@ -292,9 +403,11 @@ h3 {
   padding: 0 4px;
   border: none;
   background: none;
-  color: var(--link);
+  color: var(--chalk-dim);
   font: inherit;
+  font-size: 0.95rem;
   text-decoration: underline;
+  text-underline-offset: 3px;
   cursor: pointer;
 }
 
@@ -303,7 +416,7 @@ h3 {
 .form {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 16px;
 }
 
 .form label,
@@ -311,7 +424,16 @@ h3 {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  font-size: 0.82rem;
   font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--chalk-dim);
+}
+
+.form label .muted {
+  text-transform: none;
+  letter-spacing: 0;
 }
 
 .form label.check {
@@ -319,32 +441,44 @@ h3 {
   align-items: center;
   gap: 12px;
   min-height: 48px;
+  font-size: 1rem;
   font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--chalk);
 }
 
 fieldset {
   margin: 0;
   padding: 0;
   border: none;
+  min-width: 0;
 }
 
 legend {
   padding: 0;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
 }
 
 input,
 textarea,
 select {
   width: 100%;
-  min-height: 48px;
+  min-height: 50px;
   padding: 10px 12px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--card);
-  color: var(--text);
-  font: inherit;
-  font-size: 1rem; /* 16px stops iPhones zooming in on focus */
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: var(--night);
+  color: var(--chalk);
+  font-family: var(--body);
+  font-size: 1.05rem; /* 16px or more stops iPhones zooming in on focus */
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  outline: 2px solid var(--gold);
+  outline-offset: 1px;
 }
 
 input[type="checkbox"] {
@@ -352,17 +486,17 @@ input[type="checkbox"] {
   min-height: 24px;
   height: 24px;
   flex-shrink: 0;
-  accent-color: var(--green);
+  accent-color: var(--gold);
 }
 
 .error {
   padding: 10px 12px;
-  border-radius: 10px;
-  border: 1px solid var(--red);
+  border-left: 3px solid var(--red);
+  background: rgba(255, 107, 91, 0.08);
   color: var(--red);
 }
 
-/* Pick-one buttons (position, sort order). */
+/* Pick-one buttons (position, sort order, teammates). */
 .choices,
 .sort-bar {
   display: flex;
@@ -371,93 +505,803 @@ input[type="checkbox"] {
   gap: 8px;
 }
 
+.sort-bar .muted {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
 .choice {
   min-height: 44px;
   padding: 8px 14px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  background: var(--card);
-  color: var(--text);
-  font: inherit;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: transparent;
+  color: var(--chalk);
+  font-family: var(--body);
+  font-size: 0.95rem;
+  font-weight: 600;
   cursor: pointer;
 }
 
 .choice.small {
+  min-height: 44px;
   padding: 4px 12px;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
 }
 
 .choice.selected {
-  background: var(--green);
-  border-color: var(--green);
-  color: #fff;
-  font-weight: 700;
+  background: var(--gold);
+  border-color: var(--gold);
+  color: var(--night);
 }
 
-/* --- Games ------------------------------------------------------------- */
+/* --- The landing page (signed out) ------------------------------------- */
 
-/* A card that should catch the eye (your next game, "tell the crew"). */
-.highlight {
-  border: 2px solid var(--gold);
+.landing {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Full-bleed: the photo fills the whole screen, edge to edge. */
+.hero {
+  position: relative;
+  min-height: 100vh;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.hero-photo {
+  position: absolute;
+  /* Taller than the screen and pulled up: the empty sky goes off the top, and
+     the players and the ball sit above the sign-up button. */
+  left: 0;
+  bottom: 0;
+  z-index: -2;
+  width: 100%;
+  height: 128%;
+  object-fit: cover;
+  object-position: 50% 100%;
+  filter: saturate(0.78) contrast(1.06);
+}
+
+/* Night falls over the photo: dark at the top for the headline, dark at the
+   bottom for the button, the game itself lit in between. */
+.hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    linear-gradient(180deg, rgba(5, 13, 9, 0.95) 0%, rgba(5, 13, 9, 0.84) 34%, rgba(5, 13, 9, 0.58) 54%, rgba(5, 13, 9, 0.14) 68%, rgba(5, 13, 9, 0.42) 82%, var(--night) 100%),
+    linear-gradient(0deg, rgba(10, 46, 30, 0.4), rgba(10, 46, 30, 0.4));
+}
+
+.hero-inner {
+  flex: 1;
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 18px 18px 26px;
+  display: flex;
+  flex-direction: column;
+}
+
+.hero h1 {
+  margin-top: 9vh;
+  font-size: clamp(3.3rem, 17vw, 5rem);
+  line-height: 0.94;
+}
+
+.hero h1 em {
+  font-style: normal;
+  color: var(--gold);
+}
+
+.hero-sub {
+  margin-top: 16px;
+  max-width: 21em;
+  font-size: 1.08rem;
+  color: var(--chalk);
+}
+
+.hero-invite {
+  margin-top: 16px;
+  padding: 10px 12px;
+  border-left: 3px solid var(--gold);
+  background: rgba(5, 13, 9, 0.7);
+}
+
+.hero-actions {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.hero-actions .link-button {
+  color: var(--chalk);
+}
+
+.landing-body {
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 34px 18px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 38px;
+}
+
+/* The rotating football quote. */
+.quote-box {
+  position: relative;
+  min-height: 230px;
+  padding: 4px 0 0 20px;
+  border-left: 1px solid var(--line);
+}
+
+.quote-box blockquote {
+  margin: 0;
+  font-family: var(--display);
+  font-size: 1.62rem;
+  line-height: 1.14;
+  text-transform: uppercase;
+  animation: quote-in 0.5s ease both;
+}
+
+.quote-box cite {
+  display: block;
+  margin-top: 14px;
+  font-style: normal;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--gold);
+  animation: quote-in 0.5s 0.1s ease both;
+}
+
+.quote-dots {
+  display: flex;
+  gap: 2px;
+  margin: 12px 0 0 -12px;
+}
+
+/* Each dot is a 44px tap target with a small line inside it. */
+.quote-dots button {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.quote-dots button::before {
+  content: "";
+  width: 22px;
+  height: 2px;
+  background: var(--line);
+}
+
+.quote-dots button[aria-current="true"]::before {
+  background: var(--gold);
+}
+
+@keyframes quote-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+/* "How it works": three numbered lines, like a fixture list. */
+.steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--line);
+}
+
+.steps li {
+  display: grid;
+  grid-template-columns: 58px 1fr;
+  gap: 4px 8px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.steps .step-number {
+  grid-row: span 2;
+  font-family: var(--display);
+  font-size: 2.3rem;
+  line-height: 1;
+  color: var(--gold);
+}
+
+.steps strong {
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 1.3rem;
+  text-transform: uppercase;
+  line-height: 1.1;
+}
+
+.steps p {
+  color: var(--chalk-dim);
+}
+
+/* --- Sign up / sign in -------------------------------------------------- */
+
+.auth-head {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  margin-bottom: 4px;
+}
+
+/* --- Home ---------------------------------------------------------------- */
+
+.greeting {
+  font-size: 2.5rem;
 }
 
 .next-game {
   display: flex;
   flex-direction: column;
-  color: var(--text);
+  gap: 2px;
+  color: var(--chalk);
   text-decoration: none;
 }
 
 .next-game strong {
-  font-size: 1.5rem;
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 2.1rem;
+  line-height: 1.05;
+  text-transform: uppercase;
 }
 
-/* --- Voice note ("How was your game?") --------------------------------- */
+.next-game span {
+  color: var(--chalk-dim);
+}
+
+/* --- Pitch and game headers --------------------------------------------- */
+
+/* The header of a pitch or a game: a strip of turf with the centre circle
+   drawn behind the name. */
+.pitch-header {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  margin: -20px -18px 0;
+  padding: 26px 18px 22px;
+  overflow: hidden;
+  border-bottom: 1px solid var(--line);
+  background:
+    radial-gradient(circle at 100% 50%, transparent 0 86px, var(--line) 87px 88px, transparent 89px),
+    radial-gradient(circle at 100% 50%, var(--line) 0 3px, transparent 4px),
+    linear-gradient(180deg, var(--turf-lit), var(--turf));
+}
+
+.pitch-header h2 {
+  font-size: 2.4rem;
+  max-width: 78%;
+}
+
+.pitch-header p {
+  color: var(--chalk-dim);
+  max-width: 78%;
+}
+
+.pitch-header > a {
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.pitch-header .button,
+.pitch-header .chip {
+  margin-top: 6px;
+}
+
+.tabs {
+  display: flex;
+  border-bottom: 1px solid var(--line);
+}
+
+.tab {
+  flex: 1;
+  min-height: 48px;
+  margin-bottom: -1px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: none;
+  color: var(--chalk-dim);
+  font-family: var(--body);
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  cursor: pointer;
+}
+
+.tab.selected {
+  color: var(--chalk);
+  border-bottom-color: var(--gold);
+}
+
+/* The numbers at the end of a player's row. */
+.stats {
+  display: flex;
+  gap: 12px;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 30px;
+  color: var(--chalk-dim);
+}
+
+.stat strong {
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 1.45rem;
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+}
+
+.stat small {
+  font-size: 0.6rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.stat.selected {
+  color: var(--chalk);
+}
+
+.stat.selected strong {
+  color: var(--gold);
+}
+
+.stats.wide {
+  justify-content: space-between;
+}
+
+/* --- Leaderboards -------------------------------------------------------- */
+
+/* Each board is a scoreboard: a title strip, then ranked rows. */
+.scoreboard {
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: var(--turf);
+}
+
+.scoreboard-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px 10px;
+  border-bottom: 1px solid var(--line);
+}
+
+.scoreboard-title strong {
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 1.35rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.scoreboard-title span {
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--chalk-dim);
+}
+
+.board {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.board .row {
+  min-height: 50px;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--line-faint);
+}
+
+.board .row:last-child {
+  border-bottom: none;
+}
+
+.board .row-text {
+  color: var(--chalk);
+  text-decoration: none;
+}
+
+.rank {
+  width: 22px;
+  flex-shrink: 0;
+  font-family: var(--display);
+  font-size: 1.15rem;
+  color: var(--chalk-dim);
+  text-align: center;
+}
+
+.rank.first {
+  color: var(--gold);
+}
+
+/* The leader's row is lit. */
+.board .row:first-child {
+  background: linear-gradient(90deg, rgba(245, 197, 24, 0.1), transparent 70%);
+}
+
+.board-number {
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 1.6rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.board .row:first-child .board-number {
+  color: var(--gold);
+}
+
+/* --- The player card ----------------------------------------------------- */
+
+/* A collector's card: notched top corners, a gold frame, the big numbers. */
+.player-card {
+  position: relative;
+  width: 100%;
+  max-width: 340px;
+  margin: 6px auto 0;
+  padding: 3px; /* the gold frame is this padding showing through */
+  background: linear-gradient(160deg, #ffe98a, var(--gold) 30%, #9a7708 68%, var(--gold));
+  clip-path: polygon(13% 0, 87% 0, 100% 9%, 100% 100%, 0 100%, 0 9%);
+}
+
+.player-card-face {
+  position: relative;
+  padding: 22px 20px 20px;
+  clip-path: polygon(13% 0, 87% 0, 100% 9%, 100% 100%, 0 100%, 0 9%);
+  background:
+    radial-gradient(circle at 50% 108%, transparent 0 118px, var(--line) 119px 120px, transparent 121px),
+    radial-gradient(ellipse 80% 55% at 50% 0%, rgba(245, 197, 24, 0.2), transparent 70%),
+    linear-gradient(180deg, #143524, var(--turf) 62%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.card-top {
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+/* Top left: the position, and how many games, as on a collector's card. */
+.card-corner {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1;
+}
+
+.card-corner strong {
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 2.6rem;
+  color: var(--gold);
+}
+
+.card-corner span {
+  margin-top: 4px;
+  padding-top: 5px;
+  border-top: 1px solid var(--line);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+}
+
+.card-avatar {
+  margin-top: -34px;
+}
+
+.card-avatar .avatar {
+  box-shadow: 0 0 0 3px var(--turf), 0 0 0 5px var(--gold);
+}
+
+.card-name {
+  margin-top: 14px;
+  font-family: var(--display);
+  font-size: 2rem;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.card-nick {
+  margin-top: 4px;
+  color: var(--chalk-dim);
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+}
+
+/* Six numbers in two columns, split by a chalk line down the middle. */
+.card-stats {
+  width: 100%;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 26px;
+  row-gap: 4px;
+  position: relative;
+}
+
+.card-stats::before {
+  content: "";
+  position: absolute;
+  top: 14px;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+  background: var(--line);
+}
+
+.card-stats div {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.card-stats strong {
+  width: 1.7em;
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 1.7rem;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.card-stats span {
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--chalk-dim);
+}
+
+.card-badge {
+  width: 100%;
+  margin-top: 16px;
+  padding: 9px 10px;
+  border: 1px solid var(--gold);
+  border-radius: 2px;
+  background: rgba(245, 197, 24, 0.08);
+}
+
+.card-badge small {
+  display: block;
+  font-size: 0.64rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--chalk-dim);
+}
+
+.card-badge strong {
+  display: block;
+  margin-top: 2px;
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 1.25rem;
+  text-transform: uppercase;
+  color: var(--gold);
+  line-height: 1.1;
+}
+
+.avatar-link {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+}
+
+/* --- Game page ----------------------------------------------------------- */
+
+.scoreline {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 14px 0 6px;
+}
+
+.scoreline-label {
+  min-height: 1em;
+  color: var(--chalk-dim);
+  font-size: 0.74rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+}
+
+.scoreline-score {
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 5rem;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.scoreline-score i {
+  font-style: normal;
+  color: var(--gold);
+  margin: 0 10px;
+}
+
+.score-inputs {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.score-inputs input {
+  font-family: var(--display);
+  font-size: 1.8rem;
+  text-align: center;
+}
+
+.score-inputs > span {
+  padding-bottom: 12px;
+  font-family: var(--display);
+  font-size: 1.6rem;
+  color: var(--gold);
+}
+
+.motm {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-color: var(--gold);
+}
+
+.motm-medal {
+  display: inline-flex;
+  color: var(--gold);
+}
+
+.motm small {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--chalk-dim);
+}
+
+.motm a {
+  color: var(--chalk);
+  text-decoration: none;
+  font-family: var(--display);
+  font-size: 1.4rem;
+  text-transform: uppercase;
+}
+
+.played-like {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-left: 12px;
+  border-left: 2px solid var(--gold);
+}
+
+.played-like strong {
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 1.15rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: var(--gold);
+}
+
+.played-like span {
+  color: var(--chalk-dim);
+}
+
+.unsure {
+  border-left: 3px solid var(--gold);
+}
+
+/* Text written by Gemma keeps its line breaks. */
+.verdict {
+  white-space: pre-line;
+  font-size: 1.08rem;
+}
+
+/* --- Voice note ("How was your game?") ----------------------------------- */
 
 .mic {
   align-self: center;
-  width: 140px;
-  height: 140px;
-  margin: 24px 0 8px;
-  border: none;
+  width: 148px;
+  height: 148px;
+  margin: 22px 0 8px;
+  border: 2px solid var(--gold);
   border-radius: 50%;
-  background: var(--green);
-  box-shadow: 0 0 0 6px var(--gold);
-  font-size: 56px;
+  background: radial-gradient(circle, var(--turf-lit) 0 58%, var(--turf) 59%);
+  color: var(--gold);
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 0 10px rgba(245, 197, 24, 0.06), 0 0 60px rgba(245, 197, 24, 0.14);
   touch-action: none; /* holding the button must not scroll the page */
   user-select: none;
   -webkit-user-select: none;
 }
 
 .mic.recording {
-  background: var(--red);
+  border-color: var(--red);
+  color: var(--red);
   animation: pulse 1.2s ease-in-out infinite;
 }
 
 .timer {
-  font-size: 2rem;
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 2.6rem;
+  font-variant-numeric: tabular-nums;
 }
 
-/* The star that beats while Star Boy is working. */
+/* The crest that beats while Star Boy is working. */
 .pulse {
-  font-size: 3rem;
+  display: inline-flex;
   animation: pulse 1.2s ease-in-out infinite;
+}
+
+.pulse.small {
+  vertical-align: middle;
+  margin-right: 6px;
 }
 
 @keyframes pulse {
   50% {
-    transform: scale(1.12);
+    transform: scale(1.08);
   }
 }
 
 .quote {
   margin: 0;
   font-style: italic;
-  border-left: 4px solid var(--gold);
-}
-
-.unsure {
-  border-color: var(--gold);
+  border-left: 3px solid var(--gold);
 }
 
 /* label  [−]  3  [+] */
@@ -473,215 +1317,62 @@ input[type="checkbox"] {
 }
 
 .stepper strong {
-  min-width: 32px;
+  min-width: 36px;
   text-align: center;
-  font-size: 1.6rem;
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 1.9rem;
 }
 
 .stepper button {
   width: 48px;
   height: 48px;
-  border: 1px solid var(--border);
-  border-radius: 50%;
-  background: var(--bg);
-  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: transparent;
+  color: var(--chalk);
   font-size: 1.5rem;
   cursor: pointer;
 }
 
-/* --- Pitch page -------------------------------------------------------- */
-
-.pitch-header {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 8px;
-  margin: -16px -16px 0;
-  padding: 8px 16px 20px;
-  background: var(--green);
-  color: #fff;
-}
-
-.pitch-header a {
-  color: #fff;
-}
-
-.tabs {
-  display: flex;
-  border-bottom: 2px solid var(--border);
-}
-
-.tab {
-  flex: 1;
-  min-height: 48px;
-  margin-bottom: -2px;
-  border: none;
-  border-bottom: 3px solid transparent;
-  background: none;
-  color: var(--muted);
-  font: inherit;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.tab.selected {
-  color: var(--text);
-  border-bottom-color: var(--gold);
-}
-
-/* The three numbers at the end of a player row. */
-.stats {
-  display: flex;
-  gap: 10px;
-}
-
-.stat {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  min-width: 34px;
-  color: var(--muted);
-}
-
-.stat strong {
-  font-size: 1.25rem;
-  line-height: 1.1;
-}
-
-.stat small {
-  font-size: 0.65rem;
-  text-transform: uppercase;
-}
-
-.stat.selected {
-  color: var(--text);
-}
-
-.stats.wide {
-  justify-content: space-between;
-}
-
-/* --- Leaderboards and profile ------------------------------------------ */
-
-.board {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.board .row {
-  min-height: 48px;
-}
-
-.board .row-text {
-  color: var(--text);
-  text-decoration: none;
-}
-
-.rank {
-  width: 26px;
-  height: 26px;
-  flex-shrink: 0;
-  border-radius: 50%;
-  background: var(--border);
-  font-weight: 800;
-  font-size: 0.85rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.rank.first {
-  background: var(--gold);
-  color: #14211b;
-}
-
-.board-number {
-  font-size: 1.25rem;
-  white-space: nowrap;
-}
-
-.profile-header {
-  align-items: center;
-  text-align: center;
-}
-
-.avatar-link {
-  display: inline-flex;
-  min-height: 44px;
-  align-items: center;
-}
-
-.button.danger.selected {
-  background: var(--red);
-  border-color: var(--red);
-  color: #fff;
-}
-
-/* --- Settle it and summaries ------------------------------------------- */
-
-/* Text from Gemma keeps its line breaks. */
-.verdict {
-  white-space: pre-line;
-  font-size: 1.05rem;
-}
-
-/* Player A | stat | Player B */
-.versus {
-  width: 100%;
-  border-collapse: collapse;
-  text-align: center;
-}
-
-.versus th {
-  padding-bottom: 8px;
-  width: 30%;
-}
-
-.versus td {
-  padding: 8px 4px;
-  border-top: 1px solid var(--border);
-}
-
-.versus td strong {
-  font-size: 1.3rem;
-}
-
-.pulse.small {
-  display: inline-block;
-  font-size: 1.2rem;
-}
-
-/* --- Tap my stats (one question at a time) ----------------------------- */
+/* --- Tap my stats (one question at a time) ------------------------------- */
 
 .tap-step {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
+  gap: 18px;
+  padding-top: 18px;
   text-align: center;
-  padding-top: 16px;
 }
 
 .tap-progress {
-  color: var(--muted);
+  color: var(--chalk-dim);
+  font-size: 0.74rem;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  font-size: 0.8rem;
+  letter-spacing: 0.16em;
 }
 
 .tap-question {
-  font-size: 2rem;
-  color: var(--text);
-  text-transform: none;
-  letter-spacing: 0;
+  display: block;
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 2.6rem;
+  line-height: 1;
+  color: var(--chalk);
+  letter-spacing: 0.01em;
+}
+
+.tap-question::after {
+  display: none;
 }
 
 .tap-summary {
-  font-size: 1.3rem;
-  font-weight: 700;
+  font-family: var(--display);
+  font-size: 1.5rem;
+  text-transform: uppercase;
+  line-height: 1.2;
 }
 
 .tap-options {
@@ -693,93 +1384,87 @@ input[type="checkbox"] {
 }
 
 .tap-option {
-  min-width: 60px;
-  min-height: 60px;
-  padding: 10px 18px;
-  border: 2px solid var(--border);
-  border-radius: 14px;
-  background: var(--card);
-  color: var(--text);
-  font: inherit;
-  font-size: 1.4rem;
-  font-weight: 800;
+  flex: 1 1 56px;
+  min-height: 68px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: var(--turf);
+  color: var(--chalk);
+  font-family: var(--display);
+  font-size: 1.9rem;
   cursor: pointer;
 }
 
+.tap-option:active {
+  background: var(--gold);
+  border-color: var(--gold);
+  color: var(--night);
+}
+
 .tap-options.names .tap-option {
-  font-size: 1.05rem;
+  flex-basis: 40%;
+  font-size: 1.25rem;
+  text-transform: uppercase;
 }
 
 .tap-option.quiet {
-  color: var(--muted);
-  font-weight: 400;
+  color: var(--chalk-dim);
 }
 
 .tap-exact {
   display: flex;
   gap: 8px;
   width: 100%;
-  max-width: 260px;
+  max-width: 280px;
 }
 
-/* --- Final score and man of the match ---------------------------------- */
+/* --- Settle it ----------------------------------------------------------- */
 
-.scoreline {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
+/* Player A | stat | Player B */
+.versus {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: center;
 }
 
-.scoreline-label {
-  color: var(--muted);
+.versus th {
+  width: 31%;
+  padding-bottom: 10px;
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 1.1rem;
+  text-transform: uppercase;
+  vertical-align: top;
+}
+
+.versus th.winner {
+  color: var(--gold);
+}
+
+.versus td {
+  padding: 9px 4px;
+  border-top: 1px solid var(--line);
+  font-size: 0.74rem;
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  font-size: 0.8rem;
 }
 
-.scoreline-score {
-  font-size: 3.2rem;
-  line-height: 1;
+.versus td strong {
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 1.6rem;
+  letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
 }
 
-.scoreline-score i {
-  font-style: normal;
-  color: var(--muted);
-  margin: 0 8px;
-}
-
-.score-inputs {
-  display: flex;
-  align-items: flex-end;
-  gap: 12px;
-}
-
-.score-inputs span {
-  padding-bottom: 12px;
-  font-size: 1.4rem;
-}
-
-.motm {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.motm-medal {
-  font-size: 2rem;
-}
-
-/* --- "You played like..." ---------------------------------------------- */
-
-.played-like {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding-left: 12px;
-  border-left: 3px solid var(--gold);
-}
-
-.played-like span {
-  color: var(--muted);
+/* People who ask for less motion get none. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
 }

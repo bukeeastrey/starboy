@@ -8,12 +8,12 @@ const TABS = ["Games", "Players", "Leaderboards"];
 
 // The four boards: key from the API, title, the stat shown, its unit.
 const BOARDS = [
-  ["most_consistent", "🏃 Most Consistent", "appearances", "games"],
-  ["golden_boot", "👟 Golden Boot", "goals", "goals"],
-  ["playmaker", "🎯 Playmaker", "assists", "assists"],
-  ["most_wins", "🏆 Most Wins", "wins", "wins"],
-  ["the_wall", "🧱 The Wall", "wall", "blocks + tackles"],
-  ["most_motm", "🏅 Most MOTM", "motm", "awards"],
+  ["golden_boot", "Golden Boot", "goals", "goals"],
+  ["playmaker", "Playmaker", "assists", "assists"],
+  ["most_motm", "Most MOTM", "motm", "awards"],
+  ["the_wall", "The Wall", "wall", "blocks + tackles"],
+  ["most_wins", "Most Wins", "wins", "wins"],
+  ["most_consistent", "Most Consistent", "appearances", "games"],
 ];
 
 // The columns the Players tab can be sorted by.
@@ -50,10 +50,10 @@ export default function Pitch({ id, user }) {
         <h2>{pitch.name}</h2>
         {pitch.area && <p>{pitch.area}</p>}
         {pitch.maps_url && (
-          <a href={pitch.maps_url} target="_blank" rel="noreferrer">📍 Open in Maps</a>
+          <a href={pitch.maps_url} target="_blank" rel="noreferrer"> Open in Maps</a>
         )}
         {pitch.registered ? (
-          <span className="chip gold">Registered ✓</span>
+          <span className="chip gold">Registered</span>
         ) : (
           <button className="button gold" onClick={register} disabled={busy}>
             {busy ? "Registering…" : "Register at this pitch"}
@@ -88,7 +88,7 @@ function GamesTab({ pitch }) {
       <Link to={`/pitch/${pitch.id}/new-game`} className="button">+ New game</Link>
 
       {upcoming.length === 0 && (
-        <p className="card muted">No game set yet. Na you go start am? 👀</p>
+        <p className="card muted">No game set yet. Na you go start am?</p>
       )}
       {upcoming.map((game) => <GameRow key={game.id} game={game} />)}
 
@@ -105,14 +105,14 @@ function PlayersTab({ players, me, pitchId }) {
   const sorted = [...players].sort((a, b) => b[sortBy] - a[sortBy]);
 
   if (players.length === 0) {
-    return <p className="card muted">Nobody has registered here yet. Be the first! 🥇</p>;
+    return <p className="card muted">Nobody has registered here yet. Be the first!</p>;
   }
 
   return (
     <div className="stack">
       {players.length > 1 && (
         <Link to={`/settle?pitch=${pitchId}`} className="button secondary">
-          Settle it ⚖️ Who's been better?
+          Settle it: who's been better?
         </Link>
       )}
       <div className="sort-bar">
@@ -162,7 +162,7 @@ function LeaderboardsTab({ pitch }) {
     return (
       <p className="card muted">
         No confirmed stats yet. Play a game, tell Star Boy how it went, and
-        confirm each other's reports. The leaderboards fill up from there. 🏆
+        confirm each other's reports. The leaderboards fill up from there.
       </p>
     );
   }
@@ -170,9 +170,12 @@ function LeaderboardsTab({ pitch }) {
   return (
     <div className="stack">
       {BOARDS.map(([key, title, stat, unit]) => (
-        <section key={key} className="card stack">
-          <h3>{title}</h3>
-          {boards[key].length === 0 && <p className="muted">Nobody yet.</p>}
+        <section key={key} className="scoreboard">
+          <div className="scoreboard-title">
+            <strong>{title}</strong>
+            <span>{unit}</span>
+          </div>
+          {boards[key].length === 0 && <p className="muted" style={{ padding: "12px 14px" }}>Nobody yet.</p>}
           <ol className="board">
             {boards[key].map((player, index) => (
               <li key={player.id} className="row">
@@ -181,9 +184,7 @@ function LeaderboardsTab({ pitch }) {
                 <Link to={`/player/${player.id}`} className="row-text">
                   <PlayerName user={player} />
                 </Link>
-                <strong className="board-number">
-                  {player[stat]} <small className="muted">{unit}</small>
-                </strong>
+                <strong className="board-number">{player[stat]}</strong>
               </li>
             ))}
           </ol>

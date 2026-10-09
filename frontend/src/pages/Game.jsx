@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { api } from "../api.js";
 import { Avatar, ErrorNote, Loading, PlayerName, useLoad } from "../components.jsx";
+import { MedalIcon } from "../Crest.jsx";
 import FinalScore from "../FinalScore.jsx";
 import { PlayedLike, RsvpButtons, inviteMessage, statLine, whatsappLink } from "../game-parts.jsx";
 import { Link } from "../router.jsx";
@@ -36,20 +37,20 @@ export default function Game({ id, user }) {
   return (
     <div className="stack">
       <header className="pitch-header">
-        <Link to={`/pitch/${game.pitch.id}`}>🏟️ {game.pitch.name}</Link>
+        <Link to={`/pitch/${game.pitch.id}`}>{game.pitch.name}</Link>
         <h2>{game.kickoff_label}</h2>
         <p>
           {game.duration_min} minutes
           {game.created_by ? ` · set up by ${game.created_by.name}` : ""}
         </p>
-        {game.note && <p>📝 {game.note}</p>}
+        {game.note && <p> {game.note}</p>}
       </header>
 
       {cancelled && <p className="error">This game was cancelled.</p>}
 
       {justCreated && (
         <div className="card stack highlight">
-          <strong>Game set! 🎉 Now tell the crew.</strong>
+          <strong>Game set! Now tell the crew.</strong>
           <a className="button gold" href={inviteLink} target="_blank" rel="noreferrer">
             Send invite on WhatsApp
           </a>
@@ -62,7 +63,7 @@ export default function Game({ id, user }) {
           <RsvpButtons game={game} onDone={reload} />
           {game.my_status === "in" && (
             <a className="button secondary" href={`/api/games/${id}/calendar.ics`} download>
-              📅 Add to calendar
+              Add to calendar
             </a>
           )}
         </section>
@@ -70,7 +71,7 @@ export default function Game({ id, user }) {
 
       {game.can_report && !game.my_claim && (
         <Link to={`/game/${id}/report`} className="button gold big">
-          How was your game? 🎙️ Tell Star Boy
+          How was your game? Tell Star Boy
         </Link>
       )}
 
@@ -78,17 +79,17 @@ export default function Game({ id, user }) {
 
       {game.motm && (
         <p className="card motm">
-          <span className="motm-medal">🏅</span>
+          <span className="motm-medal"><MedalIcon size={34} /></span>
           <span>
-            Man of the match<br />
-            <Link to={`/player/${game.motm.id}`}><strong>{game.motm.name}</strong></Link>
+            <small>Man of the match</small>
+            <Link to={`/player/${game.motm.id}`}>{game.motm.name}</Link>
           </span>
         </p>
       )}
 
       {game.flags.includes("numbers_dont_add_up") && (
         <p className="card unsure">
-          Numbers no add up 👀 The confirmed goals are more than the score. Check your reports.
+          Numbers no add up The confirmed goals are more than the score. Check your reports.
         </p>
       )}
 
@@ -220,13 +221,13 @@ function ClaimCard({ claim, onVoted }) {
             className={claim.my_vote === "confirm" ? "button" : "button secondary"}
             onClick={() => vote("confirm")} disabled={busy}
           >
-            ✅ Confirm
+            Confirm
           </button>
           <button
             className={claim.my_vote === "dispute" ? "button danger selected" : "button danger"}
             onClick={() => vote("dispute")} disabled={busy}
           >
-            ❌ Dispute
+            Dispute
           </button>
         </div>
       )}
@@ -236,11 +237,11 @@ function ClaimCard({ claim, onVoted }) {
 }
 
 function ClaimStatus({ claim }) {
-  if (claim.status === "confirmed") return <span className="chip in">Confirmed ✅</span>;
+  if (claim.status === "confirmed") return <span className="chip in">Confirmed</span>;
   if (claim.status === "disputed") return <span className="chip out">Disputed</span>;
   return (
     <span className="chip gold">
-      {claim.confirms}/{claim.needed} ✅{claim.disputes ? ` · ${claim.disputes} ❌` : ""}
+      {claim.confirms} of {claim.needed} confirms{claim.disputes ? ` · ${claim.disputes} against` : ""}
     </span>
   );
 }

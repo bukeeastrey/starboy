@@ -7,7 +7,7 @@ import { Link } from "./router.jsx";
 
 // The little label that says what you answered.
 export function StatusChip({ status }) {
-  if (status === "in") return <span className="chip in">You're in ✅</span>;
+  if (status === "in") return <span className="chip in">You're in</span>;
   if (status === "out") return <span className="chip out">Can't make it</span>;
   if (status === "invited") return <span className="chip gold">You dey come?</span>;
   return null;
@@ -17,7 +17,7 @@ export function StatusChip({ status }) {
 export function GameRow({ game, showPitch = false }) {
   return (
     <Link to={`/game/${game.id}`} className="card row">
-      <span className="row-icon">⚽</span>
+      <span className="row-icon"></span>
       <span className="row-text">
         <strong>{game.kickoff_label}</strong>
         <span className="muted">
@@ -55,13 +55,13 @@ export function RsvpButtons({ game, onDone }) {
           className={game.my_status === "in" ? "button" : "button secondary"}
           onClick={() => answer("in")} disabled={busy}
         >
-          I'm in ✅
+          I'm in
         </button>
         <button
           className={game.my_status === "out" ? "button" : "button secondary"}
           onClick={() => answer("out")} disabled={busy}
         >
-          Can't make it ❌
+          Can't make it
         </button>
       </div>
       <ErrorNote error={error} />
@@ -89,6 +89,7 @@ export function statLine(stats) {
 // A quiet game has no legend, just a gentle line.
 export function PlayedLike({ playedLike, you = false }) {
   if (!playedLike) return null;
+  if (!playedLike.name && !you) return null;
   return (
     <p className="played-like">
       {playedLike.name && (

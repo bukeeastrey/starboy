@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "../api.js";
 import { ErrorNote, Loading, useLoad } from "../components.jsx";
+import { Crest, MicIcon, StopIcon } from "../Crest.jsx";
 import { canRecord, startRecording } from "../recorder.js";
 import TapFlow, { DEFENDING_BUCKETS } from "../TapFlow.jsx";
 import { Link, navigate } from "../router.jsx";
@@ -12,9 +13,9 @@ const POLL_MS = 2000;
 // What to say while the AI job is in each stage.
 const STAGE_TEXT = {
   queued: "Star Boy is getting ready…",
-  listening: "Star Boy is listening to your voice note… 🎧",
-  thinking: "Working out your stats… 🧮",
-  warming_up: "Star Boy is warming up (first time can take a few minutes) 🏃",
+  listening: "Star Boy is listening to your voice note…",
+  thinking: "Working out your stats…",
+  warming_up: "Star Boy is warming up (first time can take a few minutes)",
 };
 
 // "How was your game?" The screen moves through these steps:
@@ -81,7 +82,7 @@ export default function Report({ id, user }) {
   return (
     <div className="stack">
       <div>
-        <h2>How was your game? 🎙️</h2>
+        <h2>How was your game?</h2>
         <p className="muted">{game.pitch.name} · {game.kickoff_label}</p>
       </div>
       <ErrorNote error={problem} />
@@ -209,7 +210,7 @@ function Recorder({ onSend, onTap }) {
         onContextMenu={(event) => event.preventDefault()} // no long-press menu on phones
         aria-label={recording ? "Stop recording" : "Start recording"}
       >
-        {recording ? "⏹" : "🎙️"}
+        {recording ? <StopIcon /> : <MicIcon />}
       </button>
       {recording ? (
         <p>
@@ -280,7 +281,7 @@ function Processing({ jobId, onDone }) {
 
   return (
     <div className="card stack center">
-      <div className="pulse">⭐</div>
+      <div className="pulse"><Crest size={56} /></div>
       <p><strong>{text}</strong></p>
       <p className="muted">
         This can take up to a minute. Open models do the listening: Whisper and Gemma.
@@ -345,21 +346,21 @@ function Review({ game, result, me, onRedo, onSubmitted }) {
 
       {result.unclear.length > 0 && (
         <p className="card unsure">
-          🤔 I wasn't sure about: {result.unclear.join("; ")}. Check the numbers below.
+          I wasn't sure about: {result.unclear.join("; ")}. Check the numbers below.
         </p>
       )}
 
       <div className="card stack">
-        <Stepper label="⚽ Goals" value={stats.goals} onChange={set("goals")} />
-        <Stepper label="🎯 Assists" value={stats.assists} onChange={set("assists")} />
+        <Stepper label=" Goals" value={stats.goals} onChange={set("goals")} />
+        <Stepper label=" Assists" value={stats.assists} onChange={set("assists")} />
 
         <label className="check">
           <input type="checkbox" checked={keeper} onChange={() => setKeeper(!keeper)} />
-          I was in goal 🧤
+          I was in goal
         </label>
         {keeper && (
           <>
-            <Stepper label="🧤 Saves" value={stats.saves} onChange={set("saves")} />
+            <Stepper label=" Saves" value={stats.saves} onChange={set("saves")} />
             <label className="check">
               <input
                 type="checkbox" checked={stats.clean_sheet === true}
@@ -433,7 +434,7 @@ function Review({ game, result, me, onRedo, onSubmitted }) {
 
       <ErrorNote error={error} />
       <button className="button big" onClick={submit} disabled={busy}>
-        {busy ? "Sending…" : "Looks right, submit ✅"}
+        {busy ? "Sending…" : "Looks right. Submit"}
       </button>
       <button className="link-button" onClick={onRedo}>Start again</button>
       <p className="muted center">

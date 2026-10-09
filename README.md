@@ -6,6 +6,19 @@ Every pickup football pitch becomes a small community: register at your pitch, s
 
 > Built for the DEV Hacktoberfest Open-Source AI Challenge ("Touch Grass").
 
+| Landing | Pitch leaderboards | Player card |
+|---|---|---|
+| ![Landing page](docs/screenshots/landing.png) | ![Leaderboards](docs/screenshots/pitch-leaderboards.png) | ![Player card](docs/screenshots/player-card.png) |
+
+## What it does
+
+- **Pitches:** register at your pitch, see who plays there, and the leaderboards: Golden Boot, Playmaker, Most MOTM, The Wall, Most Wins, Most Consistent.
+- **Games:** set one up, invite players, answer "I'm in" or "Can't make it" in one tap. Reminders arrive on Telegram.
+- **After the game:** tell Star Boy how it went with a **voice note**, or **tap your stats** with a few buttons. Teammates confirm before anything counts. The game's creator enters the final score once.
+- **"You played like…":** each report earns a legend, picked by code from the stats (a hat-trick might make you Rashidi Yekini), with one line written by Gemma.
+- **Settle it:** pick two players and get a decisive verdict from confirmed stats.
+- **Share:** summaries, leaderboards and verdicts go to WhatsApp as clean text.
+
 ## How it is built
 
 - **Frontend:** React 18 + Vite, plain CSS (a phone-first web app you can add to the Home Screen).
@@ -25,6 +38,7 @@ Both modes use the same prompts and the same code checks. On this project's 2014
 
 - **Voice note to stats:** Whisper transcribes, Gemma extracts JSON, then code checks it: numbers must be 0 to 20, any number of 2 or more must appear in the transcript, the result and score must agree, and names must match players in that game.
 - **Settle it:** code computes the comparison table from confirmed stats and picks the winner. Gemma only announces and explains it. Every number in its text must exist in the table and belong to the player it is given to. If not, it gets one retry, then a plain template is used.
+- **"You played like…":** code picks the legend from the stats. Gemma only writes the one line, which may not invent a number or name a different player.
 - **Game summaries:** same rule: every number must be in the facts the code collected.
 - **Audio is never stored.** The file is deleted right after transcription; only the transcript is kept. In cloud mode the audio is sent to Groq to be transcribed, and the transcript to Google's Gemini API.
 
@@ -139,6 +153,11 @@ python -m pytest                   # consensus rules, number checks, pipelines, 
 ```
 
 Demo data goes into its own database, `starboy_demo`, never the real one. To look at it, start the backend with `$env:MONGODB_DB = "starboy_demo"; .\run.ps1` and sign in with phone `0800 000 0001` to `0800 000 0010`, PIN `1234`. The database tests use another separate database, `starboy_test`.
+
+## Credits
+
+- Landing photo: [Kenechukwu Emmanuel on Pexels](https://www.pexels.com/photo/youth-playing-football-in-nigeria-at-sunset-30449603/), free to use under the Pexels licence. The file is stored in this repo (`frontend/public/img/`).
+- Fonts: Anton and Barlow, from Google Fonts (SIL Open Font License).
 
 ## Run it with Docker
 

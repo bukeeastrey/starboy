@@ -23,7 +23,7 @@ export default function SignIn({ onSignedIn }) {
 
   return (
     <form className="form" onSubmit={submit}>
-      <h2>Welcome back ⭐</h2>
+      <h2>Welcome back</h2>
 
       <label>
         Phone number

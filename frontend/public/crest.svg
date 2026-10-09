@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 72" role="img" aria-label="Star Boy">
+  <!-- The badge: a club-crest shield in pitch green with a gold rim -->
+  <path d="M32 3 58 11v25c0 15-10.5 25.5-26 32C16.500 61.500 6 51 6 36V11z" fill="#0c1f16" stroke="#f5c518" stroke-width="3" stroke-linejoin="round"/>
+  <!-- A chalk line inside the rim, like a touchline -->
+  <path d="M32 9.500 52.500 15.600V36c0 11.700-8 20.300-20.500 26C19.500 56.300 11.500 47.700 11.500 36V15.600z" fill="none" stroke="#f1f4ee" stroke-width=".9" stroke-opacity=".45" stroke-linejoin="round"/>
+  <!-- The star: five points, inner radius 0.382 of the outer (a true pentagram) -->
+  <polygon points="32,17 35.14,26.67 45.32,26.67 37.09,32.65 40.23,42.33 32,36.35 23.77,42.33 26.91,32.65 18.68,26.67 28.86,26.67" fill="#f5c518"/>
+  <!-- Halfway line and half of the centre circle -->
+  <path d="M19 49.500h26M26 49.500a6 6 0 0 0 12 0" fill="none" stroke="#f1f4ee" stroke-width="1.100" stroke-opacity=".7" stroke-linecap="round"/>
+</svg>

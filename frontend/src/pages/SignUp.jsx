@@ -29,7 +29,7 @@ export default function SignUp({ onSignedIn }) {
 
   return (
     <form className="form" onSubmit={submit}>
-      <h2>Join Star Boy ⭐</h2>
+      <h2>Join Star Boy</h2>
 
       <label>
         Your name
@@ -74,7 +74,7 @@ export default function SignUp({ onSignedIn }) {
 
       <ErrorNote error={error} />
       <button className="button big" disabled={busy}>
-        {busy ? "Creating your account…" : "Let's play ⚽"}
+        {busy ? "Creating your account…" : "Let's play"}
       </button>
       <p className="center">
         <Link to="/signin">I already have an account</Link>

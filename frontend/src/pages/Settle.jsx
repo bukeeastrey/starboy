@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
 import { Avatar, ErrorNote, Loading, useLoad } from "../components.jsx";
+import { Crest } from "../Crest.jsx";
 import { whatsappLink } from "../game-parts.jsx";
 import { Link } from "../router.jsx";
 
@@ -76,7 +77,7 @@ export default function Settle({ user }) {
   return (
     <div className="stack">
       <div>
-        <h2>Settle it ⚖️</h2>
+        <h2>Settle it</h2>
         <p className="muted">
           <Link to={`/pitch/${pitch.id}`}>{pitch.name}</Link> · confirmed stats only
         </p>
@@ -108,7 +109,7 @@ export default function Settle({ user }) {
         </label>
         <ErrorNote error={error} />
         <button className="button gold big" disabled={busy || !a || !b || a === b}>
-          {busy ? "Checking the numbers…" : "Settle it ⚖️"}
+          {busy ? "Checking the numbers…" : "Settle it"}
         </button>
       </form>
 
@@ -140,9 +141,13 @@ function Verdict({ result, verdict, pitch }) {
         <table className="versus">
           <thead>
             <tr>
-              <th><Avatar user={players.a} size={44} /><br />{names.a}{result.winner === "a" && " 🏆"}</th>
+              <th className={result.winner === "a" ? "winner" : ""}>
+                <Avatar user={players.a} size={48} /><br />{names.a}
+              </th>
               <th></th>
-              <th><Avatar user={players.b} size={44} /><br />{names.b}{result.winner === "b" && " 🏆"}</th>
+              <th className={result.winner === "b" ? "winner" : ""}>
+                <Avatar user={players.b} size={48} /><br />{names.b}
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -163,7 +168,8 @@ function Verdict({ result, verdict, pitch }) {
           <p className="verdict">{verdict}</p>
         ) : (
           <p className="muted">
-            <span className="pulse small">⭐</span> Star Boy is thinking it over… (up to a minute)
+            <span className="pulse small"><Crest size={20} /></span>
+            Star Boy is thinking it over… (up to a minute)
           </p>
         )}
       </section>

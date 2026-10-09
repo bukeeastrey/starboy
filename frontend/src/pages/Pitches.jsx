@@ -11,7 +11,7 @@ export default function Pitches() {
 
   return (
     <div className="stack">
-      <h2>Find a pitch 🏟️</h2>
+      <h2>Find a pitch</h2>
       <ErrorNote error={error} />
       {!pitches && !error && <Loading />}
       {pitches?.map((pitch) => <PitchRow key={pitch.id} pitch={pitch} />)}

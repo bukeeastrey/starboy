@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { api } from "./api.js";
 import { Avatar, Loading } from "./components.jsx";
+import { Wordmark } from "./Crest.jsx";
 import { Link, matchRoute, navigate, usePath } from "./router.jsx";
 import Game from "./pages/Game.jsx";
 import Home from "./pages/Home.jsx";
@@ -85,11 +86,21 @@ export default function App() {
     }
   }
 
+  // Signed out and not on a form: the landing page, which fills the screen.
+  if (user === null && path !== "/signup" && path !== "/signin") {
+    return screen;
+  }
+
   return (
     <div className="app">
+      {user === null && (
+        <header className="topbar">
+          <Link to="/" className="brand"><Wordmark /></Link>
+        </header>
+      )}
       {user && (
         <header className="topbar">
-          <Link to="/" className="brand">⭐ Star Boy</Link>
+          <Link to="/" className="brand"><Wordmark /></Link>
           <button className="link-button" onClick={signOut}>Sign out</button>
           <Link to={`/player/${user.id}`} className="avatar-link" aria-label="Your profile">
             <Avatar user={user} size={34} />
@@ -107,7 +118,7 @@ export default function App() {
 function NotFound() {
   return (
     <div className="center">
-      <h2>Offside! 🚩</h2>
+      <h2>Offside!</h2>
       <p className="muted">We can't find that page.</p>
       <Link to="/" className="button">Back home</Link>
     </div>

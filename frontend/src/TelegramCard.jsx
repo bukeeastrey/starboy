@@ -34,12 +34,12 @@ export default function TelegramCard({ user, refreshUser }) {
 
   return (
     <section className="card stack highlight">
-      <strong>Make Star Boy remind you about games 🔔</strong>
+      <strong>Make Star Boy remind you about games</strong>
       <p className="muted">
         Invites, reminders before kickoff, and “How was your game?” all come
         on Telegram. You can answer with one tap or a voice note.
       </p>
-      <button className="button gold" onClick={connect}>Connect Telegram 🔔</button>
+      <button className="button gold" onClick={connect}>Connect Telegram</button>
       {waiting && (
         <p className="muted">
           Telegram opened: tap <strong>Start</strong> there. This card disappears once you're connected.

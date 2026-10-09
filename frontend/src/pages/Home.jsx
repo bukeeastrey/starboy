@@ -16,12 +16,12 @@ export default function Home({ user, refreshUser }) {
 
   return (
     <div className="stack">
-      <h2>How far, {firstName}? ⚽</h2>
+      <h2 className="greeting">How far, {firstName}?</h2>
       <TelegramCard user={user} refreshUser={refreshUser} />
 
       {data.needs_report.map((game) => (
         <section key={game.id} className="card stack highlight">
-          <h3>How was your game? 🎙️</h3>
+          <h3>How was your game?</h3>
           <p>
             <strong>{game.pitch.name}</strong>
             <br />
@@ -38,7 +38,7 @@ export default function Home({ user, refreshUser }) {
             <strong>{nextGame.kickoff_label}</strong>
             <span>{nextGame.pitch.name} · {nextGame.in_count} in</span>
           </Link>
-          {nextGame.note && <p className="muted">📝 {nextGame.note}</p>}
+          {nextGame.note && <p className="muted"> {nextGame.note}</p>}
           {nextGame.my_status === "invited" ? (
             <RsvpButtons game={nextGame} onDone={reload} />
           ) : (
@@ -72,7 +72,7 @@ export default function Home({ user, refreshUser }) {
 export function PitchRow({ pitch }) {
   return (
     <Link to={`/pitch/${pitch.id}`} className="card row">
-      <span className="row-icon">🏟️</span>
+      <span className="row-icon"></span>
       <span className="row-text">
         <strong>{pitch.name}</strong>
         <span className="muted">
@@ -80,7 +80,7 @@ export function PitchRow({ pitch }) {
           {pitch.player_count} {pitch.player_count === 1 ? "player" : "players"}
         </span>
       </span>
-      {pitch.registered && <span className="chip">Registered ✓</span>}
+      {pitch.registered && <span className="chip">Registered</span>}
     </Link>
   );
 }
