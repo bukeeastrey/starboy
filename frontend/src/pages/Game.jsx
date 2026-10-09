@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { api } from "../api.js";
 import { Avatar, ErrorNote, Loading, PlayerName, useLoad } from "../components.jsx";
+import FinalScore from "../FinalScore.jsx";
 import { RsvpButtons, inviteMessage, statLine, whatsappLink } from "../game-parts.jsx";
 import { Link } from "../router.jsx";
 
-export default function Game({ id }) {
+export default function Game({ id, user }) {
   const { data: game, error, reload } = useLoad(() => api(`/api/games/${id}`), [id]);
   const [actionError, setActionError] = useState("");
 
@@ -71,6 +72,18 @@ export default function Game({ id }) {
         <Link to={`/game/${id}/report`} className="button gold big">
           How was your game? 🎙️ Tell Star Boy
         </Link>
+      )}
+
+      {!cancelled && <FinalScore game={game} me={user} onSaved={reload} />}
+
+      {game.motm && (
+        <p className="card motm">
+          <span className="motm-medal">🏅</span>
+          <span>
+            Man of the match<br />
+            <Link to={`/player/${game.motm.id}`}><strong>{game.motm.name}</strong></Link>
+          </span>
+        </p>
       )}
 
       {game.flags.includes("numbers_dont_add_up") && (

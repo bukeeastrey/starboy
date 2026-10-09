@@ -62,6 +62,8 @@ def stat_line(stats: dict) -> str:
         parts.append(count(stats["saves"], "save"))
     if stats.get("clean_sheet"):
         parts.append("clean sheet")
+    if stats.get("defending") and stats["defending"] != "0":
+        parts.append(f"{stats['defending'].replace('-', '–')} blocks/tackles")
     if stats.get("result"):
         result = {"won": "Won", "lost": "Lost", "draw": "Draw"}[stats["result"]]
         score = stats.get("score")

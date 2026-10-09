@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from pydantic import BaseModel
 
-from .. import notify, summary
+from .. import notify, results, summary
 from ..auth import current_user
 from ..config import settings
 from ..consensus import players_in, required_confirms
@@ -27,6 +27,12 @@ class NewGame(BaseModel):
 
 class Rsvp(BaseModel):
     status: str  # "in" or "out"
+
+
+class FinalScore(BaseModel):
+    us: int  # the creator's side
+    them: int
+    my_team: list[str] = []  # ids of the players on the creator's side
 
 
 # --- Helpers -------------------------------------------------------------
@@ -211,6 +217,8 @@ async def get_game(game_id: str, user: dict = Depends(current_user)):
         asyncio.create_task(summary.maybe_queue(game["_id"]))
     i_was_in = card["my_status"] == "in"
     needed = required_confirms(players_in(game))
+    motm_id = results.motm_winner(claims)
+    my_result, my_score = results.result_for(game, user["_id"])
 
     def claim_view(claim: dict) -> dict:
         """A teammate's report, as shown on the game page."""
@@ -234,6 +242,17 @@ async def get_game(game_id: str, user: dict = Depends(current_user)):
         "is_creator": game["created_by"] == user["_id"],
         "players": players,
         "flags": game.get("flags", []),
+        # The final score, entered once by whoever set the game up.
+        "result": game.get("result") and {
+            "us": game["result"]["us"],
+            "them": game["result"]["them"],
+            "team_a": [str(uid) for uid in game["result"].get("team_a", [])],
+            "my_result": my_result,
+            "my_score": my_score,
+        },
+        "can_set_result": (game["created_by"] == user["_id"] and game["status"] != "cancelled"
+                           and card["phase"] != "upcoming"),
+        "motm": by_id.get(motm_id),
         "summary": game.get("summary") and {"text": game["summary"]["text"]},
         # After kickoff, players who were in can tell Star Boy how it went.
         "can_report": (game["status"] != "cancelled" and card["phase"] != "upcoming" and i_was_in),
@@ -241,6 +260,22 @@ async def get_game(game_id: str, user: dict = Depends(current_user)):
         "claims": [claim_view(c) for c in claims
                    if c["user_id"] != user["_id"] and c["user_id"] in by_id],
     }
+
+
+@router.post("/games/{game_id}/result")
+async def set_final_score(game_id: str, body: FinalScore, user: dict = Depends(current_user)):
+    """The creator enters the final score once, and says who was on their side.
+    Every player's win, loss or draw comes from this."""
+    game, _ = await load_game(game_id)
+    if game["created_by"] != user["_id"]:
+        raise HTTPException(403, "Only the person who set up the game enters the score.")
+    if game["status"] == "cancelled" or game_phase(game) == "upcoming":
+        raise HTTPException(400, "You can enter the score after kickoff.")
+    if not (0 <= body.us <= 50 and 0 <= body.them <= 50):
+        raise HTTPException(400, "That score doesn't look right.")
+    saved = await results.set_result(game, body.us, body.them, [oid(i) for i in body.my_team])
+    asyncio.create_task(summary.maybe_queue(game["_id"]))
+    return {"us": saved["us"], "them": saved["them"]}
 
 
 @router.post("/games/{game_id}/rsvp")

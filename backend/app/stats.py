@@ -10,8 +10,9 @@ What counts (CLAUDE.md 3.6):
 from bson import ObjectId
 
 from .db import get_db
+from .results import DEFENDING_MIDPOINT
 
-STAT_FIELDS = ["appearances", "goals", "assists", "wins", "saves", "clean_sheets"]
+STAT_FIELDS = ["appearances", "goals", "assists", "wins", "saves", "clean_sheets", "wall"]
 ZERO_STATS = {field: 0 for field in STAT_FIELDS}
 
 # The four boards on a pitch page: (key, stat it ranks by).
@@ -20,6 +21,7 @@ BOARDS = [
     ("golden_boot", "goals"),
     ("playmaker", "assists"),
     ("most_wins", "wins"),
+    ("the_wall", "wall"),
 ]
 
 
@@ -37,6 +39,26 @@ def _claims_with_games(match_game: dict) -> list[dict]:
         ]}}},
         {"$addFields": {
             "is_confirmed": {"$eq": ["$status", "confirmed"]},
+            # Did this player win? From the game's final score when the
+            # creator entered one (were they on the creator's side or the
+            # other?), otherwise from what the player said in their report.
+            "won": {"$cond": [
+                {"$ifNull": ["$game.result", False]},
+                {"$cond": [
+                    {"$in": ["$user_id", {"$ifNull": ["$game.result.team_a", []]}]},
+                    {"$gt": ["$game.result.us", "$game.result.them"]},
+                    {"$gt": ["$game.result.them", "$game.result.us"]},
+                ]},
+                {"$eq": ["$stats.result", "won"]},
+            ]},
+            # Blocks + tackles: each bucket counts as its middle value.
+            "defending_points": {"$switch": {
+                "branches": [
+                    {"case": {"$eq": ["$stats.defending", bucket]}, "then": points}
+                    for bucket, points in DEFENDING_MIDPOINT.items()
+                ],
+                "default": 0,
+            }},
             "counts_appearance": {"$and": [
                 {"$eq": ["$invite.status", "in"]},
                 {"$or": [
@@ -57,7 +79,8 @@ _TOTALS = {
     "appearances": {"$sum": {"$cond": ["$counts_appearance", 1, 0]}},
     "goals": _sum_if_confirmed({"$ifNull": ["$stats.goals", 0]}),
     "assists": _sum_if_confirmed({"$ifNull": ["$stats.assists", 0]}),
-    "wins": _sum_if_confirmed({"$cond": [{"$eq": ["$stats.result", "won"]}, 1, 0]}),
+    "wins": _sum_if_confirmed({"$cond": ["$won", 1, 0]}),
+    "wall": _sum_if_confirmed("$defending_points"),
     "saves": _sum_if_confirmed({"$ifNull": ["$stats.saves", 0]}),
     "clean_sheets": _sum_if_confirmed({"$cond": [{"$eq": ["$stats.clean_sheet", True]}, 1, 0]}),
 }

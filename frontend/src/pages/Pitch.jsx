@@ -12,6 +12,7 @@ const BOARDS = [
   ["golden_boot", "👟 Golden Boot", "goals", "goals"],
   ["playmaker", "🎯 Playmaker", "assists", "assists"],
   ["most_wins", "🏆 Most Wins", "wins", "wins"],
+  ["the_wall", "🧱 The Wall", "wall", "blocks + tackles"],
 ];
 
 // The columns the Players tab can be sorted by.

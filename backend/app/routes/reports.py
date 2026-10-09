@@ -32,6 +32,10 @@ class ClaimBody(BaseModel):
     assisted_player_ids: list[str] = []
     # True = "ask for an edit" of a report teammates already confirmed.
     edit: bool = False
+    # Who they vote Man of the Match (another player who was in), or "".
+    motm_vote_id: str = ""
+    # How the report was made: "voice", "text" or "buttons".
+    source: str = "voice"
 
 
 async def reportable_game(game_id: str, user: dict) -> dict:
@@ -116,14 +120,16 @@ async def submit_claim(game_id: str, body: ClaimBody, user: dict = Depends(curre
     """Save the stats the player checked. They stay "pending" until teammates confirm."""
     game = await reportable_game(game_id, user)
     claim = await save_claim(game, user, body.transcript, body.stats,
-                             body.assisted_player_ids, edit=body.edit)
+                             body.assisted_player_ids, edit=body.edit,
+                             motm_vote_id=body.motm_vote_id, source=body.source)
     return {"status": "pending", "stats": claim["stats"]}
 
 
 async def save_claim(game: dict, user: dict, transcript: str, raw_stats: dict,
-                     assisted_player_ids: list[str], edit: bool = False) -> dict:
+                     assisted_player_ids: list[str], edit: bool = False,
+                     motm_vote_id: str = "", source: str = "voice") -> dict:
     """Save a player's report as a pending claim and ask teammates to confirm.
-    Used by the web app and by the Telegram "Looks right ✅" button."""
+    Used by the web app and by the Telegram bot (voice, text and tap flows)."""
     db = get_db()
 
     existing = await db.claims.find_one({"game_id": game["_id"], "user_id": user["_id"]})
@@ -141,11 +147,22 @@ async def save_claim(game: dict, user: dict, transcript: str, raw_stats: dict,
     ).to_list(None)
     stats["assisted_players"] = [{"id": str(u["_id"]), "name": u["name"]} for u in assisted]
 
+    # The Man of the Match vote: another player who was in this game.
+    voted_for = None
+    if motm_vote_id:
+        candidate = oid(motm_vote_id)
+        if candidate in in_ids and candidate != user["_id"]:
+            voted_for = await db.users.find_one({"_id": candidate})
+    stats["motm_vote"] = voted_for and {"id": str(voted_for["_id"]), "name": voted_for["name"]}
+
     claim = {
         "game_id": game["_id"],
         "user_id": user["_id"],
         "transcript": transcript.strip()[:MAX_TEXT_CHARS],
         "stats": stats,
+        "source": source if source in ("voice", "text", "buttons") else "voice",
+        # Kept as a real id too, so pipelines can count the votes.
+        "motm_vote_id": voted_for["_id"] if voted_for else None,
         "status": "pending",
         "confirmations": [],
         "disputes": [],

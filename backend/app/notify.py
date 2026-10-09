@@ -60,6 +60,35 @@ async def await_report(chat_id: int, game_id) -> None:
     )
 
 
+def how_was_your_game(pitch: dict) -> str:
+    return f"How was your game at <b>{escape(pitch['name'])}</b> today? ⚽"
+
+
+def report_buttons(game_id) -> list[list[tuple[str, str]]]:
+    """Two ways to report: tap through a few buttons, or just talk."""
+    return [[("Tap my stats 📋", f"ts:{game_id}")],
+            [("Send a voice note 🎙️", f"vn:{game_id}")]]
+
+
+async def ask_creator_for_score(game: dict, pitch: dict) -> None:
+    """The final score is entered once, by whoever set the game up."""
+    if game.get("result"):
+        return
+    chats = await chat_ids([game["created_by"]])
+    for chat_id in chats.values():
+        await get_db().bot_state.update_one(
+            {"_id": chat_id},
+            {"$set": {"awaiting_score_game_id": game["_id"],
+                      "expires_at": now() + AWAITING_REPORT_FOR}},
+            upsert=True,
+        )
+        await telegram.send(
+            chat_id,
+            f"You set up the game at <b>{escape(pitch['name'])}</b>. What was the final score?\n"
+            "Reply like <b>5-3</b>, your side first.",
+            open_button(f"/game/{game['_id']}", "Or enter it on the web"))
+
+
 # --- Invites and cancellations ---------------------------------------------
 
 async def invites(game: dict, pitch: dict, inviter: dict, user_ids: list) -> None:
@@ -111,12 +140,13 @@ async def reminder(kind: str, game: dict) -> int:
         # Don't ask players who already told Star Boy about this game.
         reported = await get_db().claims.distinct("user_id", {"game_id": game_id})
         chats = await chat_ids([uid for uid in in_ids if uid not in reported])
-        text = (f"How was your game at <b>{name}</b>? 🎙️\n"
-                "Reply with a voice note (or type it): the score, your goals, your assists.")
         for chat_id in chats.values():
+            # A voice note sent straight away, without tapping a button, still works.
             await await_report(chat_id, game_id)
-        return await telegram.send_many(list(chats.values()), text,
-                                        open_button(f"/game/{game_id}/report", "Or tell me on the web"))
+        sent = await telegram.send_many(list(chats.values()), how_was_your_game(pitch),
+                                        report_buttons(game_id))
+        await ask_creator_for_score(game, pitch)
+        return sent
 
     return 0
 

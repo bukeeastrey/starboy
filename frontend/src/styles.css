@@ -653,3 +653,119 @@ input[type="checkbox"] {
   display: inline-block;
   font-size: 1.2rem;
 }
+
+/* --- Tap my stats (one question at a time) ----------------------------- */
+
+.tap-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  text-align: center;
+  padding-top: 16px;
+}
+
+.tap-progress {
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.8rem;
+}
+
+.tap-question {
+  font-size: 2rem;
+  color: var(--text);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.tap-summary {
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.tap-options {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.tap-option {
+  min-width: 60px;
+  min-height: 60px;
+  padding: 10px 18px;
+  border: 2px solid var(--border);
+  border-radius: 14px;
+  background: var(--card);
+  color: var(--text);
+  font: inherit;
+  font-size: 1.4rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.tap-options.names .tap-option {
+  font-size: 1.05rem;
+}
+
+.tap-option.quiet {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.tap-exact {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  max-width: 260px;
+}
+
+/* --- Final score and man of the match ---------------------------------- */
+
+.scoreline {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.scoreline-label {
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.8rem;
+}
+
+.scoreline-score {
+  font-size: 3.2rem;
+  line-height: 1;
+}
+
+.scoreline-score i {
+  font-style: normal;
+  color: var(--muted);
+  margin: 0 8px;
+}
+
+.score-inputs {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.score-inputs span {
+  padding-bottom: 12px;
+  font-size: 1.4rem;
+}
+
+.motm {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.motm-medal {
+  font-size: 2rem;
+}

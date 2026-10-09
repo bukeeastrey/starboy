@@ -75,6 +75,9 @@ export function statLine(stats) {
   const parts = [count(stats.goals ?? 0, "goal"), count(stats.assists ?? 0, "assist")];
   if (stats.saves !== null && stats.saves !== undefined) parts.push(count(stats.saves, "save"));
   if (stats.clean_sheet) parts.push("clean sheet");
+  if (stats.defending && stats.defending !== "0") {
+    parts.push(`${stats.defending.replace("-", "–")} blocks/tackles`);
+  }
   if (stats.result) {
     const result = { won: "Won", lost: "Lost", draw: "Draw" }[stats.result];
     parts.push(stats.score ? `${result} ${stats.score.us}–${stats.score.them}` : result);

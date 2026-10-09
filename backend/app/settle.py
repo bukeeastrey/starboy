@@ -7,7 +7,7 @@ import re
 
 from bson import ObjectId
 
-from . import jobs, prompts, verify
+from . import jobs, prompts, results, verify
 from .db import get_db
 from .util import display_name
 
@@ -23,9 +23,14 @@ async def confirmed_reports(user_id: ObjectId, match_game: dict) -> list[dict]:
         {"$unwind": "$game"},
         {"$match": {"game.status": {"$ne": "cancelled"}, **match_game}},
         {"$sort": {"game.kickoff_at": 1}},
-        {"$project": {"game_id": 1, "stats": 1}},
+        {"$project": {"game_id": 1, "stats": 1, "game.result": 1}},
     ]
-    return await get_db().claims.aggregate(pipeline).to_list(None)
+    reports = await get_db().claims.aggregate(pipeline).to_list(None)
+    for report in reports:
+        # Won, lost or drew: from the game's final score when the creator entered one.
+        report["stats"]["result"], report["stats"]["score"] = results.result_for(
+            report["game"], user_id, report["stats"])
+    return reports
 
 
 def per_game(total: int, games: int) -> str:

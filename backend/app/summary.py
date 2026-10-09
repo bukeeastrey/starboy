@@ -33,6 +33,13 @@ def fingerprint(claims: list[dict]) -> str:
     return hashlib.sha1("|".join(parts).encode()).hexdigest()
 
 
+def summary_key(game: dict, claims: list[dict]) -> str:
+    """The fingerprint plus the final score, so entering the score also
+    refreshes the summary."""
+    result = game.get("result") or {}
+    return f"{fingerprint(claims)}:{result.get('us')}-{result.get('them')}"
+
+
 def enough_reports(game: dict, claims: list[dict]) -> bool:
     """At least half of the players who were in have reported."""
     players_in = sum(1 for invite in game["invites"] if invite["status"] == "in")
@@ -56,6 +63,8 @@ def collect_facts(game: dict, pitch: dict, claims: list[dict], users: dict) -> d
         for s in (claim["stats"].get("score") for claim in claims) if s
     )
     score = "{}-{}".format(*scores.most_common(1)[0][0]) if scores else ""
+    if game.get("result"):  # the creator's final score beats what players remember
+        score = "{}-{}".format(*sorted([game["result"]["us"], game["result"]["them"]], reverse=True))
 
     return {
         "pitch": pitch["name"],
@@ -96,7 +105,7 @@ async def maybe_queue(game_id) -> None:
     game, _, claims, _ = await load(game_id)
     if game["status"] == "cancelled" or not enough_reports(game, claims):
         return
-    if (game.get("summary") or {}).get("key") == fingerprint(claims):
+    if (game.get("summary") or {}).get("key") == summary_key(game, claims):
         return  # the summary we have is still right
     if await db.jobs.find_one({"type": "summary", "input.game_id": game_id,
                                "status": {"$in": ["queued", "running"]}}):
@@ -114,7 +123,7 @@ async def write_summary(job: dict) -> dict:
     first_time = not game.get("summary")
     await get_db().games.update_one({"_id": game["_id"]}, {"$set": {"summary": {
         "text": result["text"], "source": result["source"],
-        "generated_at": now(), "key": fingerprint(claims),
+        "generated_at": now(), "key": summary_key(game, claims),
     }}})
     if first_time:
         await send_to_players(game, pitch, result["text"])

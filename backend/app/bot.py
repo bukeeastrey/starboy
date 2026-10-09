@@ -13,7 +13,7 @@ from bson import ObjectId
 from bson.errors import InvalidId
 from fastapi import HTTPException
 
-from . import consensus, jobs, notify, stats, telegram
+from . import consensus, jobs, notify, stats, tapflow, telegram
 from .config import AUDIO_DIR, settings
 from .db import get_db
 from .routes.games import game_phase, invite_of, set_rsvp
@@ -91,6 +91,12 @@ async def on_message(message: dict) -> None:
     elif text.startswith("/"):
         await telegram.send(chat_id, HELP)
     elif text:
+        # A typed message can be three things. Try the two specific ones first:
+        # the exact number after tapping "4+", or the creator's "5-3" final score.
+        if await tapflow.on_number(user, chat_id, text):
+            return
+        if await tapflow.on_score_text(user, chat_id, text):
+            return
         await on_report(user, chat_id, text=text)
 
 
@@ -161,8 +167,8 @@ async def cmd_report(user: dict, chat_id: int) -> None:
     elif len(games) == 1:
         pitch = await notify.pitch_of(games[0])
         await notify.await_report(chat_id, games[0]["_id"])
-        await telegram.send(chat_id, f"How was your game at <b>{escape(pitch['name'])}</b>? 🎙️\n"
-                                     "Reply with a voice note (or type it).")
+        await telegram.send(chat_id, notify.how_was_your_game(pitch),
+                            notify.report_buttons(games[0]["_id"]))
     else:
         await telegram.send(chat_id, "Which game?", await game_choice_buttons(games))
 
@@ -337,6 +343,14 @@ async def on_tap(tap: dict) -> None:
             toast = await tap_game(user, chat_id, message_id, rest)
         elif action == "ok":  # "Looks right ✅" under "Here's what I heard"
             toast = await tap_looks_right(user, chat_id, message_id, old_text, rest)
+        elif action == "ts":  # "Tap my stats 📋": start the button flow for a game
+            toast = await tapflow.start(user, chat_id, message_id, object_id(rest))
+        elif action == "t":  # a button inside that flow
+            toast = await tapflow.on_tap(user, chat_id, message_id, rest)
+        elif action == "vn":  # "Send a voice note 🎙️"
+            toast = await tap_voice_note(user, chat_id, message_id, rest)
+        elif action in ("rs", "rd"):  # the creator ticking who was on their side
+            toast = await tapflow.on_side_tap(user, chat_id, message_id, action, rest)
         else:
             toast = ""
     except HTTPException as error:
@@ -397,8 +411,21 @@ async def tap_game(user, chat_id, message_id, game_id) -> str:
         await start_report_job(user, chat_id, game, pending.get("file_id"), pending.get("text"))
     else:
         await telegram.edit(chat_id, message_id,
-                            f"How was your game at <b>{escape(label)}</b>? 🎙️\n"
-                            "Reply with a voice note (or type it).")
+                            f"How was your game at <b>{escape(label)}</b>? ⚽",
+                            notify.report_buttons(game["_id"]))
+    return ""
+
+
+async def tap_voice_note(user, chat_id, message_id, game_id) -> str:
+    game = await get_db().games.find_one({"_id": object_id(game_id)})
+    if not game:
+        return "I can't find that game."
+    pitch = await notify.pitch_of(game)
+    await notify.await_report(chat_id, game["_id"])
+    await telegram.edit(chat_id, message_id,
+                        f"<b>{escape(pitch['name'])}</b>\n"
+                        "Send me a voice note now 🎙️ (or type it): your goals, your assists, "
+                        "and anything else worth telling.")
     return ""
 
 
@@ -410,8 +437,11 @@ async def tap_looks_right(user, chat_id, message_id, old_text, job_id) -> str:
     game = await db.games.find_one({"_id": job["input"]["game_id"]})
     report = job["result"]["stats"]
     await save_claim(game, user, job["result"]["transcript"], report,
-                     [p["id"] for p in report["assisted_players"]])
-    await db.bot_state.delete_one({"_id": chat_id})
+                     [p["id"] for p in report["assisted_players"]],
+                     source="voice" if job["input"].get("audio_path") else "text")
+    # Done with this report (other things in the state, like a score being entered, stay).
+    await db.bot_state.update_one(
+        {"_id": chat_id}, {"$unset": {"awaiting_report_game_id": "", "pending": ""}})
     await telegram.edit(chat_id, message_id,
                         f"{escape(old_text)}\n\n<b>Submitted ✅ It counts once your teammates confirm.</b>",
                         notify.open_button(f"/game/{game['_id']}", "Open game"))

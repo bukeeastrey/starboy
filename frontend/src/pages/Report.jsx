@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { api } from "../api.js";
 import { ErrorNote, Loading, useLoad } from "../components.jsx";
 import { canRecord, startRecording } from "../recorder.js";
+import TapFlow, { DEFENDING_BUCKETS } from "../TapFlow.jsx";
 import { Link, navigate } from "../router.jsx";
 
 const MAX_SECONDS = 90;
@@ -27,10 +28,12 @@ export default function Report({ id, user }) {
   const [jobId, setJobId] = useState(fromTelegram);
   const [result, setResult] = useState(null); // { transcript, stats, unclear }
   const [problem, setProblem] = useState("");
+  const [wasTyped, setWasTyped] = useState(false);
 
   // Send the voice note (a Blob) or the typed text; the backend queues an AI job.
   async function send(what) {
     setProblem("");
+    setWasTyped(typeof what === "string");
     setStep("processing");
     try {
       let job;
@@ -57,7 +60,7 @@ export default function Report({ id, user }) {
       setProblem("I didn't catch that. Try again or type it.");
       setStep("record");
     } else {
-      setResult(job.result);
+      setResult({ ...job.result, typed: wasTyped });
       setStep("review");
     }
   }
@@ -83,7 +86,14 @@ export default function Report({ id, user }) {
       </div>
       <ErrorNote error={problem} />
 
-      {step === "record" && <Recorder onSend={send} />}
+      {step === "record" && <Recorder onSend={send} onTap={() => setStep("tap")} />}
+      {step === "tap" && (
+        <TapFlow
+          game={game} me={user}
+          onCancel={() => setStep("record")}
+          onSubmitted={() => navigate(`/game/${id}`)}
+        />
+      )}
       {step === "processing" && <Processing jobId={jobId} onDone={onJobDone} />}
       {step === "review" && (
         <Review
@@ -98,7 +108,7 @@ export default function Report({ id, user }) {
 
 // --- Step 1: talk (or type) ------------------------------------------------
 
-function Recorder({ onSend }) {
+function Recorder({ onSend, onTap }) {
   const [recording, setRecording] = useState(false);
   const [seconds, setSeconds] = useState(0);
   const [typing, setTyping] = useState(!canRecord());
@@ -214,13 +224,16 @@ function Recorder({ onSend }) {
           <strong>Hold to tell Star Boy how your game went</strong>
           <br />
           <span className="muted">
-            or tap once to start. Say the score, your goals and assists.
+            or tap once to start. Say your goals, your assists, anything worth telling.
           </span>
         </p>
       )}
       <ErrorNote error={error} />
       {!recording && (
-        <button className="link-button" onClick={() => setTyping(true)}>Type it instead</button>
+        <>
+          <button className="button secondary" onClick={onTap}>Tap my stats instead</button>
+          <button className="link-button" onClick={() => setTyping(true)}>Type it instead</button>
+        </>
       )}
     </div>
   );
@@ -292,9 +305,7 @@ function Review({ game, result, me, onRedo, onSubmitted }) {
   const set = (field) => (value) => setStats({ ...stats, [field]: value });
   const teammates = game.players.in.filter((player) => player.id !== me.id);
 
-  function setScore(side, value) {
-    setStats({ ...stats, score: { us: null, them: null, ...stats.score, [side]: value } });
-  }
+  const [motm, setMotm] = useState("");
 
   function toggleAssisted(playerId) {
     const next = new Set(assisted);
@@ -311,6 +322,8 @@ function Review({ game, result, me, onRedo, onSubmitted }) {
         method: "POST",
         body: {
           transcript: result.transcript,
+          source: result.typed ? "text" : "voice",
+          motm_vote_id: motm,
           assisted_player_ids: [...assisted],
           // "?edit=1" in the address = changing a report teammates already confirmed.
           edit: new URLSearchParams(window.location.search).has("edit"),
@@ -358,22 +371,39 @@ function Review({ game, result, me, onRedo, onSubmitted }) {
         )}
       </div>
 
-      <div className="card stack">
-        <strong>How did your team do?</strong>
-        <div className="choices">
-          {[["won", "We won 🏆"], ["draw", "Draw 🤝"], ["lost", "We lost 😤"]].map(([value, label]) => (
-            <button
-              key={value} type="button"
-              className={stats.result === value ? "choice selected" : "choice"}
-              onClick={() => set("result")(stats.result === value ? null : value)}
-            >
-              {label}
-            </button>
-          ))}
+      {!keeper && (
+        <div className="card stack">
+          <strong>Blocks + tackles?</strong>
+          <div className="choices">
+            {DEFENDING_BUCKETS.map((bucket) => (
+              <button
+                key={bucket} type="button"
+                className={stats.defending === bucket ? "choice selected" : "choice"}
+                onClick={() => set("defending")(stats.defending === bucket ? null : bucket)}
+              >
+                {bucket.replace("-", "–")}
+              </button>
+            ))}
+          </div>
         </div>
-        <Stepper label="Our goals" value={stats.score?.us ?? null} onChange={(v) => setScore("us", v)} />
-        <Stepper label="Their goals" value={stats.score?.them ?? null} onChange={(v) => setScore("them", v)} />
-      </div>
+      )}
+
+      {teammates.length > 0 && (
+        <div className="card stack">
+          <strong>Man of the match?</strong>
+          <div className="choices">
+            {teammates.map((player) => (
+              <button
+                key={player.id} type="button"
+                className={motm === player.id ? "choice selected" : "choice"}
+                onClick={() => setMotm(motm === player.id ? "" : player.id)}
+              >
+                {player.nickname || player.name.split(" ")[0]}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {teammates.length > 0 && (
         <div className="card stack">

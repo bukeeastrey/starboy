@@ -8,6 +8,7 @@ import difflib
 import re
 
 from . import llm, prompts
+from .results import DEFENDING_BUCKETS
 
 RESULTS = ("won", "lost", "draw")
 MAX_STAT = 20
@@ -58,12 +59,15 @@ def clean_stats(raw: dict) -> dict:
         clean_sheet = False  # they scored, so it wasn't a clean sheet
 
     highlight = " ".join(str(raw.get("highlight") or "").split()[:15])[:120]
+    # Blocks + tackles, as a bucket ("3-5"). Only the tap flow asks for it.
+    defending = raw.get("defending") if raw.get("defending") in DEFENDING_BUCKETS else None
 
     return {
         "goals": clean_int(raw.get("goals")),
         "assists": clean_int(raw.get("assists")),
         "saves": clean_int(raw.get("saves")),
         "clean_sheet": clean_sheet,
+        "defending": defending,
         "result": result,
         "score": score,
         "highlight": highlight,
