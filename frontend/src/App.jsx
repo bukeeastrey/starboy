@@ -3,6 +3,7 @@ import { api } from "./api.js";
 import { Avatar, Loading } from "./components.jsx";
 import { Wordmark } from "./Crest.jsx";
 import { PHOTO_CREDITS } from "./photos.js";
+import { signInFromTelegram } from "./telegram-app.js";
 import { Link, matchRoute, navigate, usePath } from "./router.jsx";
 import Game from "./pages/Game.jsx";
 import Home from "./pages/Home.jsx";
@@ -48,7 +49,8 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    refreshUser();
+    // Opened inside Telegram? Sign in from Telegram's launch data first.
+    signInFromTelegram().finally(refreshUser);
   }, [refreshUser]);
 
   function onSignedIn(newUser) {

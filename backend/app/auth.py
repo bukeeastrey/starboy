@@ -2,10 +2,13 @@
 
 import hashlib
 import hmac
+import json
 import logging
 import re
 import secrets
+import time
 from datetime import timedelta
+from urllib.parse import parse_qsl
 
 from fastapi import HTTPException, Request, Response
 from jose import JWTError, jwt
@@ -93,3 +96,43 @@ async def current_user(request: Request) -> dict:
             if user:
                 return user
     raise HTTPException(status_code=401, detail="Please sign in.")
+
+
+# --- Telegram Mini App ---------------------------------------------------
+
+# How old Telegram's launch data may be. It is made fresh each time the Mini
+# App opens, so a day is generous; an old copy someone saved is refused.
+INIT_DATA_MAX_AGE = 24 * 3600
+
+
+def telegram_user_from_init_data(init_data: str, bot_token: str, at: float | None = None) -> dict | None:
+    """Check the "initData" a Telegram Mini App hands the page, and return
+    the Telegram user in it. None if it is forged, altered or too old.
+
+    This is Telegram's documented check: every field except "hash" is sorted
+    and joined as "key=value" lines; that text is signed with HMAC-SHA256,
+    using a key that is itself HMAC-SHA256("WebAppData", bot token). Only
+    Telegram and we know the bot token, so only Telegram can make a matching hash."""
+    try:
+        fields = dict(parse_qsl(init_data, keep_blank_values=True, strict_parsing=True))
+    except ValueError:
+        return None
+    their_hash = fields.pop("hash", "")
+    if not their_hash or not bot_token:
+        return None
+
+    check_string = "\n".join(f"{key}={fields[key]}" for key in sorted(fields))
+    secret_key = hmac.new(b"WebAppData", bot_token.encode(), hashlib.sha256).digest()
+    our_hash = hmac.new(secret_key, check_string.encode(), hashlib.sha256).hexdigest()
+    if not hmac.compare_digest(our_hash, their_hash):
+        return None
+
+    try:
+        age = (at if at is not None else time.time()) - int(fields.get("auth_date", "0"))
+        user = json.loads(fields.get("user", ""))
+    except (ValueError, TypeError):
+        return None
+    # A few minutes of "from the future" is allowed: two computers' clocks never agree exactly.
+    if not -300 <= age <= INIT_DATA_MAX_AGE or not isinstance(user, dict) or "id" not in user:
+        return None
+    return user

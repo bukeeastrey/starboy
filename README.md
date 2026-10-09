@@ -87,13 +87,28 @@ Open http://localhost:5173.
 
 **AI on the laptop.** For `AI_MODE=local`, install [Ollama](https://ollama.com) and run `ollama pull gemma4:e2b-it-qat`. For `AI_MODE=cloud`, put a free `GEMINI_API_KEY` ([Google AI Studio](https://aistudio.google.com/apikey)) and `GROQ_API_KEY` ([Groq console](https://console.groq.com/keys)) in `.env`.
 
-## Telegram bot
+## Star Boy inside Telegram
+
+Players don't need the website at all. Everything works in the bot chat, with buttons.
+
+- **Join:** send `/start`. The bot asks your name (it suggests your Telegram name), nickname, position and, if you like, your number through Telegram's own "Share my number" button. No PIN.
+- **Menu:** eight buttons sit under the chat box: New game, My games, Pitches, Leaderboards, Report a game, Settle it, My card, Open Star Boy.
+- **New game:** pick the pitch, the day (or a date from a small calendar), the time, how long, a note, and tick who to invite. The bot sends the invites, a WhatsApp share link and a matchday poster.
+- **My games:** answer invites, invite more, enter the final score, cancel, add photos, report your stats.
+- **Also:** browse and add pitches, leaderboards as tables, Settle it, and your player card as a picture.
+- **The full app, inside Telegram:** the button beside the chat box opens the website as a Telegram Mini App, already signed in.
+
+Every step has Back and Cancel, a conversation left for 30 minutes closes itself, and tapping a menu button always gets you out of whatever you were doing. The tested conversations are in [docs/telegram/](docs/telegram/).
+
+| Matchday poster | Player card |
+|---|---|
+| ![Poster](docs/screenshots/telegram-poster.png) | ![Card](docs/screenshots/telegram-card.png) |
+
+### Setting the bot up
 
 1. Create a bot with [@BotFather](https://t.me/BotFather) and put its token in `.env` as `TELEGRAM_BOT_TOKEN=`.
 2. Start the backend. On a laptop the bot uses **polling**, so nothing needs to be public.
-3. In the web app, tap **Connect Telegram 🔔** on the Home screen and press **Start** in Telegram.
-
-Bot commands: `/next`, `/report`, `/leaderboard`, `/help`. After a game, send the bot a voice note.
+3. Send the bot `/start`.
 
 A bot can only be in one mode at a time. Once the app is deployed it registers a **webhook**, and from then on the laptop no longer receives Telegram messages. To check or switch:
 
@@ -102,6 +117,8 @@ cd backend
 python scripts/set_webhook.py --info     # what is set now
 python scripts/set_webhook.py --delete   # back to the laptop (the deployed bot stops until its next restart)
 ```
+
+How the Mini App signs you in: Telegram hands the page some launch data signed with the bot's token. The server checks that signature (as described in Telegram's documentation) before it trusts who you are.
 
 ## Deploy to Render (free)
 

@@ -9,8 +9,9 @@ from pydantic import BaseModel
 from pymongo.errors import DuplicateKeyError
 
 from .. import telegram
-from ..auth import (clear_session_cookie, current_user, hash_pin,
-                    normalise_phone, set_session_cookie, verify_pin)
+from ..auth import (clear_session_cookie, current_user, hash_pin, normalise_phone,
+                    set_session_cookie, telegram_user_from_init_data, verify_pin)
+from ..config import settings
 from ..db import get_db
 from ..util import now, public_user
 
@@ -106,6 +107,25 @@ async def magic_login(token: str = ""):
     if link:
         set_session_cookie(response, link["user_id"])
     return response
+
+
+class TelegramSignIn(BaseModel):
+    init_data: str
+
+
+@router.post("/auth/telegram")
+async def telegram_signin(body: TelegramSignIn, response: Response):
+    """Sign in from the Telegram Mini App. The page sends the launch data
+    Telegram gave it; if the check passes, we know who is holding the phone."""
+    telegram_user = telegram_user_from_init_data(body.init_data, settings.telegram_bot_token)
+    if not telegram_user:
+        raise HTTPException(401, "That didn't come from Telegram.")
+    # In a private chat, the chat's id is the person's Telegram id.
+    user = await get_db().users.find_one({"telegram_chat_id": telegram_user["id"]})
+    if not user:
+        raise HTTPException(404, "Send /start to the Star Boy bot first, then open this again.")
+    set_session_cookie(response, user["_id"])
+    return me_view(user)
 
 
 @router.post("/auth/signout")

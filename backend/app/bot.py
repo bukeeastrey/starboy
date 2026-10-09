@@ -630,6 +630,12 @@ async def register_webhook() -> None:
     else:
         log.error("Telegram refused the webhook for %s", url)
 
+    # The button beside the chat box opens Star Boy inside Telegram (the Mini
+    # App). Telegram only allows this for https addresses, so not on a laptop.
+    if settings.public_base_url.startswith("https://"):
+        await telegram.call("setChatMenuButton", menu_button={
+            "type": "web_app", "text": "Star Boy", "web_app": {"url": settings.public_base_url}})
+
 
 # --- Polling mode (the laptop) -----------------------------------------------
 

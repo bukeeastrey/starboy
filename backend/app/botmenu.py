@@ -83,7 +83,9 @@ async def open_web(user: dict, chat_id: int) -> None:
     text = (f"Your door into Star Boy, {escape(display_name(user))}. "
             f"It opens once and closes in {MAGIC_LINK_MINUTES} minutes.")
     if link.startswith("https://"):
-        await telegram.send(chat_id, text, [[("🌐 Open Star Boy", link)]])
+        # Inside Telegram (signed in automatically), or in the phone's browser (the one-time link).
+        await telegram.send(chat_id, text, [[("⭐ Open inside Telegram", f"webapp:{settings.public_base_url}")],
+                                            [("🌐 Open Star Boy", link)]])
     else:
         # Telegram refuses buttons that point at "localhost" (the laptop), so send it as text.
         await telegram.send(chat_id, f"{text}\n{link}")

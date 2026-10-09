@@ -53,14 +53,14 @@ def keyboard(rows: list[list[tuple[str, str]]]) -> dict:
     """Buttons under a message. Each button is (label, action): an action
     starting with "https://" opens a link, anything else comes back to the
     bot as a tap ("callback")."""
-    return {"inline_keyboard": [
-        [
-            {"text": label, "url": action} if action.startswith("https://")
-            else {"text": label, "callback_data": action}
-            for label, action in row
-        ]
-        for row in rows if row
-    ]}
+    def button(label: str, action: str) -> dict:
+        if action.startswith("webapp:"):  # opens the website INSIDE Telegram (the Mini App)
+            return {"text": label, "web_app": {"url": action[len("webapp:"):]}}
+        if action.startswith("https://"):
+            return {"text": label, "url": action}
+        return {"text": label, "callback_data": action}
+
+    return {"inline_keyboard": [[button(label, action) for label, action in row] for row in rows if row]}
 
 
 def reply_keyboard(rows: list[list], one_time: bool = False) -> dict:
