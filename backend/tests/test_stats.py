@@ -45,6 +45,8 @@ def test_player_totals(results):
     assert players["Sani Musa"]["appearances"] == 3
     assert players["Tunde Bello"]["wins"] == 1       # team A won only the first game
     assert players["Dayo Akin"]["saves"] == 12       # 4 + 2 + 6
+    assert players["Sani Musa"]["wall"] == 21        # "6+" counts 7, three games
+    assert players["Tunde Bello"]["motm"] == 1       # won the vote in the first game
 
 
 def test_leaderboards(results):
@@ -54,4 +56,7 @@ def test_leaderboards(results):
     assert boards["playmaker"][0]["name"] == "Chukwuemeka Obi"
     assert len(boards["most_consistent"]) == 10
     assert all(row["goals"] > 0 for row in boards["golden_boot"])
+    assert boards["the_wall"][0]["name"] == "Sani Musa"
+    # Game 2's vote was a tie, so only games 1 and 3 have a Man of the Match.
+    assert [(row["name"], row["motm"]) for row in boards["most_motm"]] == [("Bayo Ogun", 1), ("Tunde Bello", 1)]
     assert "phone" not in str(boards)

@@ -24,6 +24,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app import db  # noqa: E402
+from app import played_like  # noqa: E402
 from app.auth import hash_pin  # noqa: E402
 from app.util import WAT, now  # noqa: E402
 
@@ -44,6 +45,12 @@ PLAYERS = [
     ("Musa Ibrahim", "", "Anywhere"),
 ]
 TEAM_A = range(0, 5)
+
+# Blocks + tackles for the two defenders (player index: bucket), every game.
+DEFENDING = {2: "6+", 7: "3-5"}
+# Who most players voted Man of the Match in each game (player index).
+# In the second game the vote is split, so nobody wins it.
+MOTM = [0, None, 5]
 
 # Each game: days ago, score (team A, team B), {player index: (goals, assists)},
 # and keeper saves {player index: saves}.
@@ -104,7 +111,7 @@ async def run() -> None:
     )
 
     # 3. The games, each with a confirmed report from all 10 players.
-    for days_ago, (score_a, score_b), contributions, saves in GAMES:
+    for number, (days_ago, (score_a, score_b), contributions, saves) in enumerate(GAMES):
         kickoff = (now().astimezone(WAT) - timedelta(days=days_ago)).replace(
             hour=17, minute=0, second=0, microsecond=0)
         game = {
@@ -113,6 +120,8 @@ async def run() -> None:
             "invites": [{"user_id": uid, "status": "in", "responded_at": kickoff} for uid in ids],
             "reminders_sent": {"night_before": True, "two_hours": True, "nudge": True, "post_game": True},
             "summary": None, "flags": [], "created_at": kickoff,
+            # The final score, from the creator's side (team A), and who was on it.
+            "result": {"us": score_a, "them": score_b, "team_a": [ids[i] for i in TEAM_A]},
         }
         await database.games.insert_one(game)
 
@@ -122,14 +131,21 @@ async def run() -> None:
             goals, assists = contributions.get(i, (0, 0))
             result = "won" if us > them else "lost" if us < them else "draw"
             teammates = [ids[j] for j in range(len(ids)) if j != i][:3]
+            # The MOTM vote: for the game's star (the star votes for a teammate);
+            # in the split game, half vote for player 0 and half for player 5.
+            star = MOTM[number] if MOTM[number] is not None else (0 if i % 2 else 5)
+            vote = ids[star] if star != i else teammates[0]
+            stats = {
+                "goals": goals, "assists": assists,
+                "saves": saves.get(i), "clean_sheet": (them == 0) if i in saves else None,
+                "defending": DEFENDING.get(i),
+                "result": result, "score": {"us": us, "them": them},
+                "highlight": "", "assisted_players": [], "motm_vote": None,
+            }
             claims.append({
                 "game_id": game["_id"], "user_id": uid, "transcript": "(demo data)",
-                "stats": {
-                    "goals": goals, "assists": assists,
-                    "saves": saves.get(i), "clean_sheet": (them == 0) if i in saves else None,
-                    "result": result, "score": {"us": us, "them": them},
-                    "highlight": "", "assisted_players": [],
-                },
+                "stats": stats, "source": "buttons", "motm_vote_id": vote,
+                "played_like": played_like.pick(stats),
                 "status": "confirmed", "confirmations": teammates, "disputes": [],
                 "created_at": kickoff + timedelta(hours=2),
                 "confirmed_at": kickoff + timedelta(hours=5),

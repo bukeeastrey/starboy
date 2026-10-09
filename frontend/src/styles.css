@@ -769,3 +769,17 @@ input[type="checkbox"] {
 .motm-medal {
   font-size: 2rem;
 }
+
+/* --- "You played like..." ---------------------------------------------- */
+
+.played-like {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-left: 12px;
+  border-left: 3px solid var(--gold);
+}
+
+.played-like span {
+  color: var(--muted);
+}

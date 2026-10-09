@@ -45,6 +45,10 @@ async def player_profile(user_id: str, me: dict = Depends(current_user)):
         **public_user(user),
         "is_me": user["_id"] == me["_id"],
         "pitch_stats": await stats.player_pitch_stats(user["_id"]),
+        "totals": await stats.player_totals(user["_id"]),
+        # The newest "You played like..." that named a legend.
+        "played_like": next((claim["played_like"] for claim in recent
+                             if (claim.get("played_like") or {}).get("name")), None),
         "pitches": [{"id": str(p["_id"]), "name": p["name"]} for p in pitches],
         "recent_games": [
             {
@@ -52,6 +56,7 @@ async def player_profile(user_id: str, me: dict = Depends(current_user)):
                 "pitch_name": claim["pitch"]["name"],
                 "kickoff_label": format_kickoff(claim["game"]["kickoff_at"]),
                 "stats": claim["stats"],
+                "played_like": claim.get("played_like"),
                 "status": claim["status"],
             }
             for claim in recent

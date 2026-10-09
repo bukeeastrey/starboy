@@ -228,6 +228,7 @@ async def get_game(game_id: str, user: dict = Depends(current_user)):
             "id": str(claim["_id"]),
             "player": by_id.get(claim["user_id"]),
             "stats": claim["stats"],
+            "played_like": claim.get("played_like"),
             "status": claim["status"],
             "confirms": len(claim["confirmations"]),
             "disputes": len(claim["disputes"]),

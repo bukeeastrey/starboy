@@ -13,6 +13,7 @@ const BOARDS = [
   ["playmaker", "🎯 Playmaker", "assists", "assists"],
   ["most_wins", "🏆 Most Wins", "wins", "wins"],
   ["the_wall", "🧱 The Wall", "wall", "blocks + tackles"],
+  ["most_motm", "🏅 Most MOTM", "motm", "awards"],
 ];
 
 // The columns the Players tab can be sorted by.

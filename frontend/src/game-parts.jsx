@@ -85,6 +85,20 @@ export function statLine(stats) {
   return parts.join(" · ");
 }
 
+// "Played like Nwankwo Kanu" + the one line Gemma wrote about it.
+// A quiet game has no legend, just a gentle line.
+export function PlayedLike({ playedLike, you = false }) {
+  if (!playedLike) return null;
+  return (
+    <p className="played-like">
+      {playedLike.name && (
+        <strong>{you ? "You played like" : "Played like"} {playedLike.name}</strong>
+      )}
+      <span>{playedLike.line}</span>
+    </p>
+  );
+}
+
 // A link that opens WhatsApp with a message ready to send.
 export function whatsappLink(text) {
   return `https://wa.me/?text=${encodeURIComponent(text)}`;

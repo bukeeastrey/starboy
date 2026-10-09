@@ -9,7 +9,7 @@ from collections import Counter
 from html import escape
 from urllib.parse import quote
 
-from . import jobs, notify, prompts, telegram, verify
+from . import jobs, notify, prompts, results, telegram, verify
 from .db import get_db
 from .util import display_name, format_kickoff, now
 
@@ -126,11 +126,25 @@ async def write_summary(job: dict) -> dict:
         "generated_at": now(), "key": summary_key(game, claims),
     }}})
     if first_time:
-        await send_to_players(game, pitch, result["text"])
+        await send_to_players(game, pitch, result["text"], extra_lines(claims, users))
     return result
 
 
-async def send_to_players(game: dict, pitch: dict, text: str) -> None:
+def extra_lines(claims: list[dict], users: dict) -> list[str]:
+    """Lines added to the shared text: the man of the match, and who played
+    like which legend. All decided by code, so no AI check is needed."""
+    lines = []
+    winner = results.motm_winner(claims)
+    if winner in users:
+        lines.append(f"Man of the match: {users[winner]['name']}")
+    for claim in claims:
+        legend = (claim.get("played_like") or {}).get("name")
+        if legend and claim["user_id"] in users:
+            lines.append(f"{display_name(users[claim['user_id']])} played like {legend}")
+    return lines
+
+
+async def send_to_players(game: dict, pitch: dict, text: str, extras: list[str]) -> None:
     """Send the summary on Telegram to everyone who played (the first time only,
     so later updates don't spam)."""
     chats = await notify.chat_ids(notify.ids_with_status(game, "in"))
@@ -141,7 +155,8 @@ async def send_to_players(game: dict, pitch: dict, text: str) -> None:
     buttons = []
     link = telegram.public_url(f"/game/{game['_id']}")
     if link:
-        share = f"⭐ {pitch['name']} · {format_kickoff(game['kickoff_at'])}\n\n{text}\n\n{link}"
+        more = "\n\n" + "\n".join(extras) if extras else ""
+        share = f"⭐ {pitch['name']} · {format_kickoff(game['kickoff_at'])}\n\n{text}{more}\n\n{link}"
         buttons = [[("Share to WhatsApp", f"https://wa.me/?text={quote(share)}")],
                    [("Open in Star Boy", link)]]
     await telegram.send_many(list(chats.values()), message, buttons or None)

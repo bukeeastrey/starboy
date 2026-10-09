@@ -2,7 +2,7 @@ import { useState } from "react";
 import { api } from "../api.js";
 import { Avatar, ErrorNote, Loading, PlayerName, useLoad } from "../components.jsx";
 import FinalScore from "../FinalScore.jsx";
-import { RsvpButtons, inviteMessage, statLine, whatsappLink } from "../game-parts.jsx";
+import { PlayedLike, RsvpButtons, inviteMessage, statLine, whatsappLink } from "../game-parts.jsx";
 import { Link } from "../router.jsx";
 
 export default function Game({ id, user }) {
@@ -113,6 +113,7 @@ export default function Game({ id, user }) {
             <ClaimStatus claim={game.my_claim} />
           </div>
           <p>{statLine(game.my_claim.stats)}</p>
+          <PlayedLike playedLike={game.my_claim.played_like} you />
           {game.my_claim.stats.highlight && (
             <p className="muted">“{game.my_claim.stats.highlight}”</p>
           )}
@@ -166,10 +167,16 @@ export default function Game({ id, user }) {
 
 // The summary as clean text for the crew's WhatsApp group.
 function summaryMessage(game) {
+  // Who played like which legend, and the man of the match.
+  const extras = [game.my_claim, ...game.claims]
+    .filter((claim) => claim?.played_like?.name && claim.player)
+    .map((claim) => `${claim.player.nickname || claim.player.name.split(" ")[0]} played like ${claim.played_like.name}`);
+  if (game.motm) extras.unshift(`Man of the match: ${game.motm.name}`);
   return [
     `⭐ ${game.pitch.name} · ${game.kickoff_label}`,
     "",
     game.summary.text,
+    ...(extras.length ? ["", ...extras] : []),
     "",
     `${window.location.origin}/game/${game.id}`,
   ].join("\n");
@@ -206,6 +213,7 @@ function ClaimCard({ claim, onVoted }) {
         <ClaimStatus claim={claim} />
       </div>
       {claim.stats.highlight && <p className="muted">“{claim.stats.highlight}”</p>}
+      <PlayedLike playedLike={claim.played_like} />
       {claim.can_vote && (
         <div className="button-row">
           <button

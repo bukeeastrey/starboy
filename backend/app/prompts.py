@@ -90,3 +90,15 @@ Rules:
 - Say the result and who scored. Mention assists and saves if they are given.
 - Facts marked (pending) are not confirmed yet: say "reported" for those.
 - Clean, factual and friendly. No commentator voice. End with one light line."""
+
+
+# --- "You played like..." ----------------------------------------------------
+
+PLAYED_LIKE_SYSTEM = """A pickup footballer just reported their game. The app has already decided which football legend they played like today. Write ONE short, fun line telling them why.
+
+Rules:
+- One line, at most 18 words. Plain text: no quotes, no hashtags, no lists.
+- Speak to the player ("you"). Do not start with "You played like": the app shows that part itself.
+- Do not name any footballer other than the one given.
+- Use ONLY the numbers given, written as digits. If you mention a number it must be one of theirs.
+- Warm and playful, a little Nigerian in flavour. No commentator voice."""

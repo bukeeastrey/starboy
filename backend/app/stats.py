@@ -22,6 +22,7 @@ BOARDS = [
     ("playmaker", "assists"),
     ("most_wins", "wins"),
     ("the_wall", "wall"),
+    ("most_motm", "motm"),
 ]
 
 
@@ -104,6 +105,37 @@ async def totals_by_player(match_game: dict) -> dict[ObjectId, dict]:
     return {row.pop("_id"): row for row in rows}
 
 
+async def motm_by_player(match_game: dict) -> dict[ObjectId, int]:
+    """{user_id: games where they were voted Man of the Match}.
+
+    Counted in one pipeline: add up the votes per game and player, find each
+    game's top player, keep it only if they are clear of second place (a tie
+    means nobody won), then count the wins per player."""
+    pipeline = [
+        {"$match": {"status": {"$in": ["pending", "confirmed"]}, "motm_vote_id": {"$ne": None}}},
+        {"$lookup": {"from": "games", "localField": "game_id", "foreignField": "_id", "as": "game"}},
+        {"$unwind": "$game"},
+        {"$match": {"game.status": {"$ne": "cancelled"}, **match_game}},
+        {"$group": {"_id": {"game": "$game_id", "player": "$motm_vote_id"}, "votes": {"$sum": 1}}},
+        {"$sort": {"votes": -1}},
+        {"$group": {"_id": "$_id.game", "winner": {"$first": "$_id.player"}, "counts": {"$push": "$votes"}}},
+        {"$match": {"$expr": {"$or": [
+            {"$eq": [{"$size": "$counts"}, 1]},
+            {"$gt": [{"$arrayElemAt": ["$counts", 0]}, {"$arrayElemAt": ["$counts", 1]}]},
+        ]}}},
+        {"$group": {"_id": "$winner", "motm": {"$sum": 1}}},
+    ]
+    rows = await get_db().claims.aggregate(pipeline).to_list(None)
+    return {row["_id"]: row["motm"] for row in rows}
+
+
+async def player_totals(user_id: ObjectId) -> dict:
+    """One player's totals across every pitch (for their player card)."""
+    totals = (await totals_by_player({})).get(user_id, ZERO_STATS)
+    motm = (await motm_by_player({})).get(user_id, 0)
+    return {**totals, "motm": motm}
+
+
 async def pitch_players(pitch_id: ObjectId) -> list[dict]:
     """Everyone registered at a pitch, with their stats there."""
     pipeline = [
@@ -115,9 +147,11 @@ async def pitch_players(pitch_id: ObjectId) -> list[dict]:
     ]
     players = await get_db().registrations.aggregate(pipeline).to_list(None)
     totals = await totals_by_player({"game.pitch_id": pitch_id})
+    motm = await motm_by_player({"game.pitch_id": pitch_id})
     return [
         {**{k: v for k, v in player.items() if k != "user_id"},
-         **totals.get(player["user_id"], ZERO_STATS)}
+         **totals.get(player["user_id"], ZERO_STATS),
+         "motm": motm.get(player["user_id"], 0)}
         for player in players
     ]
 
@@ -136,11 +170,17 @@ async def leaderboards(pitch_id: ObjectId, limit: int = 10) -> dict:
                 {"$sort": {stat: -1, "appearances": -1, "name": 1}},
                 {"$limit": limit},
             ]
-            for board, stat in BOARDS
+            for board, stat in BOARDS if board != "most_motm"
         }},
     ]
     result = await get_db().claims.aggregate(pipeline).to_list(None)
-    return result[0] if result else {board: [] for board, _ in BOARDS}
+    boards = result[0] if result else {board: [] for board, _ in BOARDS}
+
+    # Most MOTM comes from the votes, not from the players' own totals.
+    players = await pitch_players(pitch_id)
+    winners = sorted((p for p in players if p["motm"] > 0), key=lambda p: (-p["motm"], p["name"]))
+    boards["most_motm"] = winners[:limit]
+    return boards
 
 
 async def player_pitch_stats(user_id: ObjectId) -> list[dict]:
