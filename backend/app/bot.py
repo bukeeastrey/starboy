@@ -13,7 +13,8 @@ from bson import ObjectId
 from bson.errors import InvalidId
 from fastapi import HTTPException
 
-from . import botgames, botmenu, consensus, flows, jobs, notify, photos, stats, tapflow, telegram
+from . import (botgames, botmenu, botmore, consensus, flows, jobs, notify, photos, stats, tapflow,
+               telegram)
 from .config import AUDIO_DIR, settings
 from .db import get_db
 from .routes.games import game_phase, invite_of, set_rsvp
@@ -78,6 +79,9 @@ async def on_message(message: dict) -> None:
         await run_menu(action, user, chat_id)
         return
 
+    if message.get("location") and await flow_message(user, chat_id, message):
+        return
+
     if message.get("photo"):
         await on_photo(user, chat_id, message["photo"])
         return
@@ -123,11 +127,14 @@ async def run_menu(action: str, user: dict, chat_id: int) -> None:
         await botgames.my_games(user, chat_id)
     elif action == "newgame":
         await botgames.start(user, chat_id)
+    elif action == "pitches":
+        await botmore.pitches(user, chat_id)
     elif action == "leaderboards":
-        await cmd_leaderboard(user, chat_id)
-    else:
-        # Not built into the chat yet: open that part of the app instead.
-        await botmenu.open_web(user, chat_id)
+        await botmore.leaderboards(user, chat_id)
+    elif action == "settle":
+        await botmore.settle_start(user, chat_id)
+    elif action == "card":
+        await botmore.my_card(user, chat_id)
 
 
 async def flow_message(user: dict, chat_id: int, message: dict) -> bool:
@@ -139,6 +146,8 @@ async def flow_message(user: dict, chat_id: int, message: dict) -> bool:
         return False
     if flow["name"] == "ng" and text:
         return await botgames.on_text(user, chat_id, flow, text)
+    if flow["name"] == "ap" and (text or message.get("location")):
+        return await botmore.add_pitch_message(user, chat_id, flow, message)
     return False
 
 
@@ -206,8 +215,8 @@ async def cmd_next(user: dict, chat_id: int) -> None:
 async def cmd_report(user: dict, chat_id: int) -> None:
     games = await reportable_games(user)
     if not games:
-        await telegram.send(chat_id, "I don't see a game from this week to report. "
-                                     "Mark yourself “in” on a game first.")
+        await telegram.send(chat_id, "📋 I don't see a game from this week to report.\n"
+                                     "Tap <b>📅 My games</b> and mark yourself in on one first.")
     elif len(games) == 1:
         pitch = await notify.pitch_of(games[0])
         await notify.await_report(chat_id, games[0]["_id"])
@@ -448,6 +457,9 @@ async def on_tap(tap: dict) -> None:
     chat_id = tap["message"]["chat"]["id"]
     message_id = tap["message"]["message_id"]
     old_text = tap["message"].get("text", "")
+    # None when the button sits under a picture: such a message can't be
+    # turned into text, so handlers send a new message instead of editing.
+    editable = None if tap["message"].get("photo") else message_id
     action, _, rest = tap.get("data", "").partition(":")
 
     user = await user_for(tap["from"]["id"])
@@ -478,14 +490,21 @@ async def on_tap(tap: dict) -> None:
             toast = await tap_looks_right(user, chat_id, message_id, old_text, rest)
         elif action == "pg":  # picked which game a photo belongs to
             toast = await tap_photo_game(user, chat_id, message_id, rest)
+        elif action == "pi":  # 🏟 Pitches
+            toast = await botmore.on_pitch_tap(user, chat_id, editable, rest)
+        elif action == "lb":  # 🏆 Leaderboards
+            toast = await botmore.on_board_tap(user, chat_id, editable, rest)
+        elif action == "st":  # ⚖️ Settle it
+            toast = await botmore.on_settle_tap(user, chat_id, editable, rest)
         elif action == "ng":  # ⚽ New game wizard ("ng:new" starts it from a button)
-            if rest == "new":
-                await botgames.start(user, chat_id)
+            if rest == "new" or rest.startswith("at:"):
+                # "ng:at:<pitch>" = "New game here" on a pitch: the pitch is already chosen.
+                await botgames.start(user, chat_id, rest[3:] if rest.startswith("at:") else None)
                 toast = ""
             else:
                 toast = await botgames.on_tap(user, chat_id, message_id, rest)
         elif action == "mg":  # 📅 My games
-            toast = await botgames.on_my_games_tap(user, chat_id, message_id, rest)
+            toast = await botgames.on_my_games_tap(user, chat_id, editable, rest)
         elif action == "inv":  # ➕ Invite more
             toast = await botgames.on_invite_tap(user, chat_id, message_id, rest)
         elif action == "ts":  # "Tap my stats 📋": start the button flow for a game

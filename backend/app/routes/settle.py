@@ -3,10 +3,10 @@
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
-from .. import jobs, settle
+from .. import settle
 from ..auth import current_user
 from ..db import get_db
-from ..util import format_kickoff, oid, public_user
+from ..util import oid, public_user
 
 router = APIRouter(prefix="/api")
 
@@ -30,35 +30,11 @@ async def settle_it(body: SettleBody, me: dict = Depends(current_user)):
         raise HTTPException(404, "We can't find that player or pitch.")
 
     game = None
-    scope = f"{pitch['name']}, all time"
     if body.game_id:
         game = await db.games.find_one({"_id": oid(body.game_id), "pitch_id": pitch["_id"]})
         if not game:
             raise HTTPException(404, "We can't find that game.")
-        scope = f"{pitch['name']}, {format_kickoff(game['kickoff_at'])}"
 
-    result = await settle.compare(user_a, user_b, pitch, game)
-    players = {"a": public_user(user_a), "b": public_user(user_b)}
-    if not result["enough"]:
-        return {"enough": False, "message": settle.NOT_ENOUGH, "players": players, "scope": scope}
-
-    # The table is ready now; Gemma's verdict comes from the job queue.
-    names = result["names"]
-    job_id = await jobs.enqueue("verdict", {
-        "user_id": me["_id"],
-        "facts": settle.facts_text(names["a"], names["b"], scope, result["table"]),
-        "fallback": result["fallback"],
-        # None = a draw. The job checks that Gemma's verdict names this player.
-        "winner_name": names.get(result["winner"]),
-        # For checking that each number is given to the right player.
-        "names": names,
-        "table": result["table"],
-        # For the "Settled" moment on the pitch page.
-        "pitch_id": pitch["_id"],
-        "a_id": user_a["_id"],
-        "b_id": user_b["_id"],
-        "winner": result["winner"],
-        "all_time": game is None,
-    })
-    return {"enough": True, "players": players, "names": names, "scope": scope,
-            "table": result["table"], "winner": result["winner"], "job_id": job_id}
+    # The table comes back now; Gemma's verdict comes from the job queue.
+    result = await settle.begin(user_a, user_b, pitch, game, asked_by=me["_id"])
+    return {**result, "players": {"a": public_user(user_a), "b": public_user(user_b)}}

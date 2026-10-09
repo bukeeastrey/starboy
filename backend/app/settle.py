@@ -9,7 +9,7 @@ from bson import ObjectId
 
 from . import jobs, prompts, results, verify
 from .db import get_db
-from .util import display_name
+from .util import display_name, format_kickoff
 
 MIN_GAMES = 2
 NOT_ENOUGH = "Not enough confirmed games to settle this yet. Play more! ⚽"
@@ -232,6 +232,43 @@ async def compare(user_a: dict, user_b: dict, pitch: dict, game: dict | None) ->
         "winner": decide(table)["winner"],
         "fallback": template_verdict(name_a, name_b, reports_a, reports_b),
     }
+
+
+async def begin(user_a: dict, user_b: dict, pitch: dict, game: dict | None, asked_by,
+                telegram_chat_id: int | None = None) -> dict:
+    """Start a "Settle it": build the table now and queue the verdict job.
+    Used by the website and by the Telegram bot.
+
+    Returns {"enough": False, "message", "scope"} when there aren't enough
+    confirmed games, otherwise {"enough": True, "names", "scope", "table",
+    "winner", "job_id"}."""
+    scope = f"{pitch['name']}, all time" if game is None else f"{pitch['name']}, {format_kickoff(game['kickoff_at'])}"
+    result = await compare(user_a, user_b, pitch, game)
+    if not result["enough"]:
+        return {"enough": False, "message": NOT_ENOUGH, "scope": scope}
+
+    names = result["names"]
+    job_id = await jobs.enqueue("verdict", {
+        "user_id": asked_by,
+        "facts": facts_text(names["a"], names["b"], scope, result["table"]),
+        "fallback": result["fallback"],
+        # None = a draw. The job checks that Gemma's verdict names this player.
+        "winner_name": names.get(result["winner"]),
+        # For checking that each number is given to the right player.
+        "names": names,
+        "table": result["table"],
+        "scope": scope,
+        # For the "Settled" moment on the pitch page.
+        "pitch_id": pitch["_id"],
+        "a_id": user_a["_id"],
+        "b_id": user_b["_id"],
+        "winner": result["winner"],
+        "all_time": game is None,
+        # Set when the question came from Telegram: the bot sends the verdict there.
+        "telegram_chat_id": telegram_chat_id,
+    })
+    return {"enough": True, "names": names, "scope": scope, "table": result["table"],
+            "winner": result["winner"], "job_id": job_id}
 
 
 @jobs.handler("verdict")
