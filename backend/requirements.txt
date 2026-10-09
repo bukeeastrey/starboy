@@ -9,3 +9,4 @@ motor
 dnspython
 httpx
 python-jose
+pillow

@@ -193,13 +193,22 @@ async def create_game(pitch_id: str, body: NewGame, user: dict = Depends(current
     if not 10 <= body.duration_min <= 300:
         raise HTTPException(400, "A game lasts between 10 minutes and 5 hours.")
 
+    game = await make_game(pitch, user, kickoff_at, body.duration_min, body.note,
+                           [oid(user_id) for user_id in body.invite_user_ids])
+    return game_card(game, pitch, user)
+
+
+async def make_game(pitch: dict, user: dict, kickoff_at: datetime, duration_min: int,
+                    note: str, invite_ids: list) -> dict:
+    """Create a game and send the invites. Used by the website and by the
+    Telegram bot's "New game" buttons, so both do exactly the same thing."""
+    db = get_db()
     # Whoever sets up a game plays there, so put them on the pitch's list.
     await register_at(pitch["_id"], user["_id"])
 
     # Only players registered at this pitch can be invited.
-    wanted = [oid(user_id) for user_id in body.invite_user_ids]
     registered = await db.registrations.distinct(
-        "user_id", {"pitch_id": pitch["_id"], "user_id": {"$in": wanted}}
+        "user_id", {"pitch_id": pitch["_id"], "user_id": {"$in": list(invite_ids)}}
     )
 
     invites = [{"user_id": user["_id"], "status": "in", "responded_at": now()}]
@@ -211,8 +220,8 @@ async def create_game(pitch_id: str, body: NewGame, user: dict = Depends(current
         "pitch_id": pitch["_id"],
         "sport": "football",
         "kickoff_at": kickoff_at,
-        "duration_min": body.duration_min,
-        "note": body.note.strip()[:200],
+        "duration_min": duration_min,
+        "note": note.strip()[:200],
         "created_by": user["_id"],
         "status": "scheduled",
         "invites": invites,
@@ -228,7 +237,28 @@ async def create_game(pitch_id: str, body: NewGame, user: dict = Depends(current
     if game_phase(game) == "upcoming":
         invited = [invite["user_id"] for invite in invites if invite["status"] == "invited"]
         asyncio.create_task(notify.invites(game, pitch, user, invited))
-    return game_card(game, pitch, user)
+    return game
+
+
+async def invite_more(game: dict, pitch: dict, inviter: dict, user_ids: list) -> int:
+    """Add players to a game's invite list and tell them. Returns how many were new."""
+    db = get_db()
+    already = {invite["user_id"] for invite in game["invites"]}
+    registered = await db.registrations.distinct(
+        "user_id", {"pitch_id": pitch["_id"], "user_id": {"$in": list(user_ids)}})
+    new = [user_id for user_id in registered if user_id not in already]
+    if new:
+        await db.games.update_one({"_id": game["_id"]}, {"$push": {"invites": {"$each": [
+            {"user_id": user_id, "status": "invited", "responded_at": None} for user_id in new]}}})
+        asyncio.create_task(notify.invites(game, pitch, inviter, new))
+    return len(new)
+
+
+async def cancel(game: dict, pitch: dict) -> None:
+    """Cancel a game and tell the players who were in."""
+    await get_db().games.update_one({"_id": game["_id"]}, {"$set": {"status": "cancelled"}})
+    if game["status"] != "cancelled" and game_phase(game) == "upcoming":
+        asyncio.create_task(notify.cancelled(game, pitch))
 
 
 # --- One game ------------------------------------------------------------
@@ -361,9 +391,7 @@ async def cancel_game(game_id: str, user: dict = Depends(current_user)):
     game, pitch = await load_game(game_id)
     if game["created_by"] != user["_id"]:
         raise HTTPException(403, "Only the person who set up the game can cancel it.")
-    await get_db().games.update_one({"_id": game["_id"]}, {"$set": {"status": "cancelled"}})
-    if game["status"] != "cancelled" and game_phase(game) == "upcoming":
-        asyncio.create_task(notify.cancelled(game, pitch))
+    await cancel(game, pitch)
     return {"status": "cancelled"}
 
 

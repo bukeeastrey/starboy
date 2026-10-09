@@ -13,7 +13,7 @@ from bson import ObjectId
 from bson.errors import InvalidId
 from fastapi import HTTPException
 
-from . import botmenu, consensus, flows, jobs, notify, photos, stats, tapflow, telegram
+from . import botgames, botmenu, consensus, flows, jobs, notify, photos, stats, tapflow, telegram
 from .config import AUDIO_DIR, settings
 from .db import get_db
 from .routes.games import game_phase, invite_of, set_rsvp
@@ -120,7 +120,9 @@ async def run_menu(action: str, user: dict, chat_id: int) -> None:
     elif action == "report":
         await cmd_report(user, chat_id)
     elif action == "mygames":
-        await cmd_next(user, chat_id)
+        await botgames.my_games(user, chat_id)
+    elif action == "newgame":
+        await botgames.start(user, chat_id)
     elif action == "leaderboards":
         await cmd_leaderboard(user, chat_id)
     else:
@@ -131,6 +133,12 @@ async def run_menu(action: str, user: dict, chat_id: int) -> None:
 async def flow_message(user: dict, chat_id: int, message: dict) -> bool:
     """Hand a typed message (or shared contact / location) to the flow the
     chat is in. Returns False if no flow wanted it."""
+    flow = await flows.get(chat_id)
+    text = (message.get("text") or "").strip()
+    if not flow:
+        return False
+    if flow["name"] == "ng" and text:
+        return await botgames.on_text(user, chat_id, flow, text)
     return False
 
 
@@ -368,6 +376,12 @@ def pick_sizes(sizes: list[dict]) -> tuple[str, str]:
 async def on_photo(user: dict, chat_id: int, sizes: list[dict]) -> None:
     """A photo arrived: put it in the gallery of the game it is from."""
     full_id, thumb_id = pick_sizes(sizes)
+    state = await get_db().bot_state.find_one({"_id": chat_id, "expires_at": {"$gt": now()}}) or {}
+    if state.get("photo_game_id"):
+        chosen = await get_db().games.find_one({"_id": state["photo_game_id"]})
+        if chosen:
+            await add_match_photo(user, chat_id, chosen, full_id, thumb_id)
+            return
     games = await reportable_games(user, only_unreported=False)
     if not games:
         await telegram.send(chat_id, "Nice one! But I don't see a game of yours from this week "
@@ -438,9 +452,9 @@ async def on_tap(tap: dict) -> None:
 
     user = await user_for(tap["from"]["id"])
 
-    if action == "x":  # ✖️ Cancel, on every step of every flow
+    if action in ("x", "done"):  # ✖️ Cancel on every step of every flow; "Done" where that reads better
         await flows.clear(chat_id)
-        await telegram.edit(chat_id, message_id, "Cancelled. 👍")
+        await telegram.edit(chat_id, message_id, "Cancelled. 👍" if action == "x" else "Done. 👍")
         await telegram.answer_tap(tap["id"])
         return
     if action == "su":  # a button while signing up (no account yet)
@@ -464,6 +478,16 @@ async def on_tap(tap: dict) -> None:
             toast = await tap_looks_right(user, chat_id, message_id, old_text, rest)
         elif action == "pg":  # picked which game a photo belongs to
             toast = await tap_photo_game(user, chat_id, message_id, rest)
+        elif action == "ng":  # ⚽ New game wizard ("ng:new" starts it from a button)
+            if rest == "new":
+                await botgames.start(user, chat_id)
+                toast = ""
+            else:
+                toast = await botgames.on_tap(user, chat_id, message_id, rest)
+        elif action == "mg":  # 📅 My games
+            toast = await botgames.on_my_games_tap(user, chat_id, message_id, rest)
+        elif action == "inv":  # ➕ Invite more
+            toast = await botgames.on_invite_tap(user, chat_id, message_id, rest)
         elif action == "ts":  # "Tap my stats 📋": start the button flow for a game
             toast = await tapflow.start(user, chat_id, message_id, object_id(rest))
         elif action == "t":  # a button inside that flow
