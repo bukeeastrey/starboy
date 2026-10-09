@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { api } from "../api.js";
 import { Avatar, ErrorNote, Loading, PlayerName, useLoad } from "../components.jsx";
 import { GameRow, whatsappLink } from "../game-parts.jsx";
+import Moments from "../Moments.jsx";
 import { stockCover, uploadPhoto } from "../photos.js";
 import { Link } from "../router.jsx";
 
@@ -87,6 +88,8 @@ export default function Pitch({ id, user }) {
         )}
       </header>
       <ErrorNote error={actionError} />
+
+      <Moments moments={pitch.moments} />
 
       <nav className="tabs">
         {TABS.map((name) => (

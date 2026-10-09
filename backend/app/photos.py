@@ -96,12 +96,12 @@ async def game_gallery(game: dict, me: dict, users_by_id: dict) -> list[dict]:
     ]
 
 
-async def first_for_games(game_ids: list) -> dict:
-    """{game_id: photo urls} with one photo per game (the newest), for cards
-    that want to show a picture from the match."""
+async def for_games(game_ids: list, each: int = 6) -> dict:
+    """{game_id: [photo urls]} with up to `each` photos per game (newest
+    first), for cards that want to show pictures from the match."""
     rows = await get_db().photos.aggregate([
         {"$match": {"kind": "game", "game_id": {"$in": list(game_ids)}}},
         {"$sort": {"created_at": -1}},
-        {"$group": {"_id": "$game_id", "photo_id": {"$first": "$_id"}}},
+        {"$group": {"_id": "$game_id", "photo_ids": {"$push": "$_id"}}},
     ]).to_list(None)
-    return {row["_id"]: urls(row["photo_id"]) for row in rows}
+    return {row["_id"]: [urls(photo_id) for photo_id in row["photo_ids"][:each]] for row in rows}

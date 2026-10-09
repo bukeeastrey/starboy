@@ -27,6 +27,8 @@ async def ensure_indexes() -> None:
     await db.claims.create_index([("game_id", 1), ("user_id", 1)], unique=True)
     await db.claims.create_index([("user_id", 1), ("status", 1)])
     await db.photos.create_index([("game_id", 1), ("created_at", -1)])
+    await db.moments.create_index("key", unique=True)
+    await db.moments.create_index([("pitch_id", 1), ("at", -1)])
 
 
 async def seed_pitches() -> None:

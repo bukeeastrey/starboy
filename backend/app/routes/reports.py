@@ -6,7 +6,7 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, UploadFile
 from pydantic import BaseModel
 
-from .. import consensus, jobs, notify, played_like, summary
+from .. import consensus, jobs, moments, notify, played_like, summary
 from ..auth import current_user
 from ..config import AUDIO_DIR
 from ..db import get_db
@@ -179,6 +179,7 @@ async def save_claim(game: dict, user: dict, transcript: str, raw_stats: dict,
     # Ask the other players on Telegram (in the background).
     saved = await db.claims.find_one({"game_id": game["_id"], "user_id": user["_id"]})
     asyncio.create_task(notify.claim_to_teammates(saved, game, user))
+    await moments.refresh_game(game["_id"])
     # "You played like...": the code picks the legend, Gemma writes the line.
     saved["played_like"] = await played_like.choose_for(saved)
     # Enough reports in? Then Star Boy writes (or rewrites) the game summary.

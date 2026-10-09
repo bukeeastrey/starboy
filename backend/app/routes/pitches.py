@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from pymongo.errors import DuplicateKeyError
 
-from .. import photos, stats
+from .. import moments, photos, stats
 from ..auth import current_user
 from ..db import get_db
 from ..util import now, oid
@@ -98,6 +98,7 @@ async def get_pitch(pitch_id: str, user: dict = Depends(current_user)):
         "registered": any(player["id"] == my_id for player in players),
         "players": players,
         "leaderboards": await stats.leaderboards(pitch["_id"]),
+        "moments": await moments.feed(pitch["_id"], user),
         "games": await pitch_games(pitch["_id"], user),
     }
 
@@ -110,6 +111,21 @@ async def register(pitch_id: str, user: dict = Depends(current_user)):
         raise HTTPException(404, "We can't find that pitch.")
     await register_at(pitch["_id"], user["_id"])
     return {"registered": True}
+
+
+class Reaction(BaseModel):
+    reaction: str  # "fire", "ball", "clap" or "laugh"
+
+
+@router.post("/moments/{moment_id}/react")
+async def react_to_moment(moment_id: str, body: Reaction, user: dict = Depends(current_user)):
+    """One tap: react to a moment, change your reaction, or take it back."""
+    if body.reaction not in moments.REACTIONS:
+        raise HTTPException(400, "Pick one of the four reactions.")
+    updated = await moments.react(oid(moment_id), user["_id"], body.reaction)
+    if not updated:
+        raise HTTPException(404, "That moment is gone.")
+    return updated
 
 
 async def register_at(pitch_id, user_id) -> None:

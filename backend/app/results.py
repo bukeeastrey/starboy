@@ -41,6 +41,8 @@ async def set_result(game: dict, us: int, them: int, team_a: list) -> dict:
     side = [uid for uid in dict.fromkeys([game["created_by"], *team_a]) if uid in in_ids]
     result = {"us": us, "them": them, "team_a": side, "entered_at": now()}
     await get_db().games.update_one({"_id": game["_id"]}, {"$set": {"result": result}})
+    from . import moments  # here, because moments.py imports this file
+    await moments.refresh_game(game["_id"])
     return result
 
 

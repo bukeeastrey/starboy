@@ -24,7 +24,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app import db  # noqa: E402
-from app import played_like  # noqa: E402
+from app import moments, photos, played_like  # noqa: E402
 from app.auth import hash_pin  # noqa: E402
 from app.util import WAT, now  # noqa: E402
 
@@ -76,8 +76,11 @@ async def remove() -> int:
     if old_pitch:
         old_games = await database.games.distinct("_id", {"pitch_id": old_pitch["_id"]})
         await database.claims.delete_many({"game_id": {"$in": old_games}})
+        for photo in await database.photos.find({"game_id": {"$in": old_games}}).to_list(None):
+            await photos.remove(photo)
         await database.games.delete_many({"pitch_id": old_pitch["_id"]})
         await database.registrations.delete_many({"pitch_id": old_pitch["_id"]})
+        await database.moments.delete_many({"pitch_id": old_pitch["_id"]})
         await database.pitches.delete_one({"_id": old_pitch["_id"]})
     await database.claims.delete_many({"user_id": {"$in": old_users}})
     await database.registrations.delete_many({"user_id": {"$in": old_users}})
@@ -151,6 +154,7 @@ async def run() -> None:
                 "confirmed_at": kickoff + timedelta(hours=5),
             })
         await database.claims.insert_many(claims)
+        await moments.refresh_game(game["_id"])
 
     print(f"Seeded '{PITCH_NAME}' in database '{database.name}': {len(ids)} players, {len(GAMES)} games.")
     print("Sign in as any of them: phone 0800 000 0001 (to 0010), PIN 1234.")

@@ -53,6 +53,12 @@ async def settle_it(body: SettleBody, me: dict = Depends(current_user)):
         # For checking that each number is given to the right player.
         "names": names,
         "table": result["table"],
+        # For the "Settled" moment on the pitch page.
+        "pitch_id": pitch["_id"],
+        "a_id": user_a["_id"],
+        "b_id": user_b["_id"],
+        "winner": result["winner"],
+        "all_time": game is None,
     })
     return {"enough": True, "players": players, "names": names, "scope": scope,
             "table": result["table"], "winner": result["winner"], "job_id": job_id}

@@ -1400,6 +1400,147 @@ img.avatar {
   font-size: 0.85rem;
 }
 
+/* --- Moments ------------------------------------------------------------- */
+
+.moments {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* A highlight card: a gold rule down the side, the match photo if there is one. */
+.moment {
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--gold);
+  border-radius: 3px;
+  background: var(--turf);
+  overflow: hidden;
+}
+
+.moment-body {
+  display: flex;
+  align-items: stretch;
+  color: var(--chalk);
+  text-decoration: none;
+}
+
+/* The photo fills the left edge of the card at whatever height the text
+   needs; it never makes the card taller. */
+.moment-body:has(.moment-photo) {
+  position: relative;
+  padding-left: 104px;
+  min-height: 104px;
+}
+
+.moment-photo {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 104px;
+  height: 100%;
+  object-fit: cover;
+  background: var(--turf-lit);
+}
+
+.moment-text {
+  flex: 1;
+  min-width: 0;
+  padding: 12px 14px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.moment-when {
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--chalk-dim);
+}
+
+.moment-title {
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 1.55rem;
+  line-height: 1.05;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+
+.moment-text p {
+  color: var(--chalk);
+}
+
+/* The quieter kinds of moment keep the title chalk-white. */
+.moment-wall .moment-title,
+.moment-brace .moment-title,
+.moment-clean_sheet .moment-title,
+.moment-verdict .moment-title {
+  color: var(--chalk);
+}
+
+.moment-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 8px 4px 14px;
+  border-top: 1px solid var(--line-faint);
+}
+
+.moment-player {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  color: var(--chalk-dim);
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.reactions {
+  display: flex;
+  margin-left: auto;
+}
+
+.reaction {
+  min-width: 44px;
+  height: 44px;
+  padding: 0 6px;
+  border: none;
+  border-radius: 3px;
+  background: none;
+  color: var(--chalk-dim);
+  font-family: var(--body);
+  font-size: 1.1rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  filter: grayscale(0.85);
+  opacity: 0.75;
+}
+
+.reaction b {
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+/* A reaction somebody has given is in full colour; yours is underlined in gold. */
+.reaction:has(b),
+.reaction.mine {
+  filter: none;
+  opacity: 1;
+}
+
+.reaction.mine {
+  box-shadow: inset 0 -2px 0 var(--gold);
+  color: var(--gold);
+}
+
 /* --- Voice note ("How was your game?") ----------------------------------- */
 
 .mic {

@@ -239,8 +239,19 @@ async def write_verdict(job: dict) -> dict:
     """The AI job: Gemma writes the verdict from the table, then we verify it."""
     data = job["input"]
     await jobs.set_stage(job["_id"], "thinking")
-    return await verify.write_with_facts(
+    result = await verify.write_with_facts(
         prompts.SETTLE_SYSTEM, data["facts"], lambda: data["fallback"],
         also_check=lambda text: (
             verdict_is_clear(text, data.get("winner_name"))
             and numbers_belong(text, data["names"]["a"], data["names"]["b"], data["table"])))
+
+    # An all-time verdict goes on the pitch's Moments feed.
+    if data.get("all_time") and data.get("pitch_id"):
+        from . import moments
+        db = get_db()
+        a = await db.users.find_one({"_id": data["a_id"]})
+        b = await db.users.find_one({"_id": data["b_id"]})
+        winner = {"a": a, "b": b}.get(data["winner"])
+        if a and b:
+            await moments.add_verdict(data["pitch_id"], winner, a, b, result["text"])
+    return result
