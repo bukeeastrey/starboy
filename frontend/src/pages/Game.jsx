@@ -6,6 +6,7 @@ import FinalScore from "../FinalScore.jsx";
 import Gallery from "../Gallery.jsx";
 import { PlayedLike, RsvpButtons, inviteMessage, statLine, whatsappLink } from "../game-parts.jsx";
 import { Burst, Countdown, CountUp, useFirstTime } from "../motion.jsx";
+import PosterButton from "../Poster.jsx";
 import { Link } from "../router.jsx";
 
 const shortName = (player) => player.nickname || player.name.split(" ")[0];
@@ -62,6 +63,7 @@ export default function Game({ id, user }) {
           <a className="button gold" href={inviteLink} target="_blank" rel="noreferrer">
             Send invite on WhatsApp
           </a>
+          <PosterButton game={game} />
         </div>
       )}
 
@@ -136,9 +138,12 @@ export default function Game({ id, user }) {
       <PlayerList title={`Can't make it (${game.players.out.length})`} players={game.players.out} />
 
       {!cancelled && !finished && !justCreated && (
-        <a className="button secondary" href={inviteLink} target="_blank" rel="noreferrer">
-          Invite more people on WhatsApp
-        </a>
+        <>
+          <a className="button secondary" href={inviteLink} target="_blank" rel="noreferrer">
+            Invite more people on WhatsApp
+          </a>
+          <PosterButton game={game} />
+        </>
       )}
 
       <ErrorNote error={actionError} />

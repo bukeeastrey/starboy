@@ -6,9 +6,13 @@ Every pickup football pitch becomes a small community: register at your pitch, s
 
 > Built for the DEV Hacktoberfest Open-Source AI Challenge ("Touch Grass").
 
-| Landing | Pitch leaderboards | Player card |
+| Landing | Pitch page | Moments |
 |---|---|---|
-| ![Landing page](docs/screenshots/landing.png) | ![Leaderboards](docs/screenshots/pitch-leaderboards.png) | ![Player card](docs/screenshots/player-card.png) |
+| ![Landing page](docs/screenshots/landing.png) | ![Pitch page](docs/screenshots/pitch-top.png) | ![Moments](docs/screenshots/moments.png) |
+
+| Match report | Player card | Card back |
+|---|---|---|
+| ![Match report](docs/screenshots/game-scoreboard.png) | ![Player card](docs/screenshots/player-card.png) | ![Card back](docs/screenshots/player-card-back.png) |
 
 ## What it does
 
@@ -17,7 +21,9 @@ Every pickup football pitch becomes a small community: register at your pitch, s
 - **After the game:** tell Star Boy how it went with a **voice note**, or **tap your stats** with a few buttons. Teammates confirm before anything counts. The game's creator enters the final score once.
 - **"You played like…":** each report earns a legend, picked by code from the stats (a hat-trick might make you Rashidi Yekini), with one line written by Gemma.
 - **Settle it:** pick two players and get a decisive verdict from confirmed stats.
-- **Share:** summaries, leaderboards and verdicts go to WhatsApp as clean text.
+- **Photos from the crew:** add match photos on the game page or by sending them to the Telegram bot; set a cover photo for your pitch and a photo for your player card.
+- **Moments:** a feed of highlights on each pitch page (hat-tricks, man of the match, milestones, Golden Boot lead changes), built from confirmed stats, with one-tap reactions.
+- **Share:** summaries, leaderboards and verdicts go to WhatsApp as clean text, and an upcoming game has a matchday poster for WhatsApp Status.
 
 ## How it is built
 
@@ -154,9 +160,16 @@ python -m pytest                   # consensus rules, number checks, pipelines, 
 
 Demo data goes into its own database, `starboy_demo`, never the real one. To look at it, start the backend with `$env:MONGODB_DB = "starboy_demo"; .\run.ps1` and sign in with phone `0800 000 0001` to `0800 000 0010`, PIN `1234`. The database tests use another separate database, `starboy_test`.
 
+## Photos and storage
+
+Photos are stored in MongoDB GridFS, so everything stays in the one free Atlas cluster. Before uploading, the browser shrinks each photo to about 1280 px (around 200 KB) plus a small thumbnail; at that size the free 512 MB holds roughly 2,000 photos. To stay inside the free server's data allowance, lists show thumbnails, full photos load only when opened, and browsers keep every photo for a year. Photos are only served to signed-in players.
+
 ## Credits
 
-- Landing photo: [Kenechukwu Emmanuel on Pexels](https://www.pexels.com/photo/youth-playing-football-in-nigeria-at-sunset-30449603/), free to use under the Pexels licence. The file is stored in this repo (`frontend/public/img/`).
+All stock photos are from [Pexels](https://www.pexels.com), free to use under the Pexels licence, and stored in this repo (`frontend/public/img/`):
+
+- Landing photo: [Kenechukwu Emmanuel](https://www.pexels.com/photo/youth-playing-football-in-nigeria-at-sunset-30449603/).
+- Fallback pitch covers: [Usman Umar](https://www.pexels.com/photo/feet-gathered-around-soccer-ball-on-nigerian-soil-30100550/), [Praisetoby Praise](https://www.pexels.com/photo/children-playing-football-on-abuja-street-31533073/), [B. Aristotle Guweh Jr.](https://www.pexels.com/photo/children-playing-soccer-on-a-sandy-street-31948291/), [Muhammad Shehu](https://www.pexels.com/photo/children-playing-soccer-on-sunny-day-outdoors-34228180/), [Thato Moiketsi](https://www.pexels.com/photo/children-play-football-in-south-africa-32422417/).
 - Fonts: Anton and Barlow, from Google Fonts (SIL Open Font License).
 
 ## Run it with Docker
