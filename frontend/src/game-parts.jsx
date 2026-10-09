@@ -26,7 +26,13 @@ export function GameRow({ game, showPitch = false }) {
           {game.phase === "live" ? " · Playing now" : ""}
         </span>
       </span>
-      <StatusChip status={game.my_status} />
+      {game.status === "cancelled" ? (
+        <span className="chip out">Cancelled</span>
+      ) : game.phase === "finished" ? (
+        game.my_status === "in" && <span className="chip">Played</span>
+      ) : (
+        <StatusChip status={game.my_status} />
+      )}
     </Link>
   );
 }

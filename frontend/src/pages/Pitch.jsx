@@ -160,19 +160,45 @@ function Move({ move }) {
     : <span className="move down" aria-label={`Down ${-move}`}>▼{-move}</span>;
 }
 
+// Every game at this pitch: the ones to come (soonest first), then the past
+// ones (newest first, including cancelled games), a page at a time.
 function GamesTab({ pitch }) {
-  const { upcoming, recent } = pitch.games;
+  const { upcoming, past_total } = pitch.games;
+  const [past, setPast] = useState(pitch.games.past);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  async function loadMore() {
+    setLoading(true);
+    setError("");
+    try {
+      const page = await api(`/api/pitches/${pitch.id}/games?skip=${past.length}`);
+      setPast([...past, ...page.games]);
+    } catch (err) {
+      setError(err.message);
+    }
+    setLoading(false);
+  }
+
   return (
     <div className="stack">
       <Link to={`/pitch/${pitch.id}/new-game`} className="button">+ New game</Link>
 
+      <h3>Upcoming ({upcoming.length})</h3>
       {upcoming.length === 0 && (
         <p className="card muted">No game set yet. Na you go start am?</p>
       )}
       {upcoming.map((game) => <GameRow key={game.id} game={game} />)}
 
-      {recent.length > 0 && <h3>Recent games</h3>}
-      {recent.map((game) => <GameRow key={game.id} game={game} />)}
+      <h3>Past ({past_total})</h3>
+      {past.length === 0 && <p className="card muted">No games played here yet.</p>}
+      {past.map((game) => <GameRow key={game.id} game={game} />)}
+      <ErrorNote error={error} />
+      {past.length < past_total && (
+        <button className="button secondary" onClick={loadMore} disabled={loading}>
+          {loading ? "Loading…" : `Load more (${past_total - past.length} older)`}
+        </button>
+      )}
     </div>
   );
 }

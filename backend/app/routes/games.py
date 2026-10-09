@@ -78,7 +78,7 @@ async def cards_for(games: list[dict], me: dict) -> list[dict]:
     pitch_ids = list({game["pitch_id"] for game in games})
     pitches = await get_db().pitches.find({"_id": {"$in": pitch_ids}}).to_list(None)
     by_id = {pitch["_id"]: pitch for pitch in pitches}
-    return [game_card(game, by_id[game["pitch_id"]], me) for game in games]
+    return [game_card(game, by_id[game["pitch_id"]], me) for game in games if game["pitch_id"] in by_id]
 
 
 async def load_game(game_id: str) -> tuple[dict, dict]:
@@ -98,19 +98,50 @@ def site_url(request: Request) -> str:
 
 # --- Lists ---------------------------------------------------------------
 
-async def pitch_games(pitch_id, me: dict) -> dict:
-    """A pitch's games: the ones still to come, and the last few played."""
+PAST_PAGE = 10  # how many past games a pitch page shows before "Load more"
+
+# A game is "past" once its final whistle has gone, or if it was cancelled.
+# Kickoff + duration can't be compared inside a simple find(), so past games
+# are found with a small pipeline that works out each game's end time.
+def _past_games_pipeline(pitch_id) -> list[dict]:
+    return [
+        {"$match": {"pitch_id": pitch_id}},
+        {"$addFields": {"ends_at": {"$dateAdd": {
+            "startDate": "$kickoff_at", "unit": "minute", "amount": "$duration_min"}}}},
+        {"$match": {"$or": [{"status": "cancelled"}, {"ends_at": {"$lte": now()}}]}},
+        {"$sort": {"kickoff_at": -1}},  # newest first
+    ]
+
+
+async def past_games(pitch_id, me: dict, skip: int = 0, limit: int = PAST_PAGE) -> dict:
+    """One page of a pitch's past games (played or cancelled), newest first."""
     db = get_db()
-    # One query for the last 30 days onwards; split by "finished or not" below.
+    pipeline = _past_games_pipeline(pitch_id)
+    games = await db.games.aggregate(pipeline + [{"$skip": skip}, {"$limit": limit}]).to_list(None)
+    counted = await db.games.aggregate(pipeline + [{"$count": "total"}]).to_list(None)
+    return {"games": await cards_for(games, me), "total": counted[0]["total"] if counted else 0}
+
+
+async def pitch_games(pitch_id, me: dict) -> dict:
+    """A pitch's games: ALL the ones still to come (soonest first), and the
+    first page of past ones (newest first). Every game is in one of the two."""
+    db = get_db()
     games = await db.games.find(
         {"pitch_id": pitch_id, "status": {"$ne": "cancelled"},
-         "kickoff_at": {"$gte": now() - timedelta(days=30)}}
+         "kickoff_at": {"$gte": now() - timedelta(hours=6)}}  # 6 h covers the longest game
     ).sort("kickoff_at", 1).to_list(200)
-    cards = await cards_for(games, me)
-    return {
-        "upcoming": [card for card in cards if card["phase"] != "finished"],
-        "recent": [card for card in reversed(cards) if card["phase"] == "finished"][:5],
-    }
+    upcoming = [card for card in await cards_for(games, me) if card["phase"] != "finished"]
+    past = await past_games(pitch_id, me)
+    return {"upcoming": upcoming, "past": past["games"], "past_total": past["total"]}
+
+
+async def my_recent_games(me: dict, limit: int = 5) -> list[dict]:
+    """The last few games I was in that have kicked off (for the Home screen)."""
+    games = await get_db().games.find(
+        {"kickoff_at": {"$lte": now()},
+         "invites": {"$elemMatch": {"user_id": me["_id"], "status": "in"}}}
+    ).sort("kickoff_at", -1).to_list(limit)
+    return await cards_for(games, me)
 
 
 async def my_next_games(me: dict) -> list[dict]:
@@ -136,6 +167,12 @@ async def my_unreported_games(me: dict) -> list[dict]:
         "game_id", {"user_id": me["_id"], "game_id": {"$in": [game["_id"] for game in games]}}
     )
     return await cards_for([game for game in games if game["_id"] not in reported], me)
+
+
+@router.get("/pitches/{pitch_id}/games")
+async def more_past_games(pitch_id: str, skip: int = 0, user: dict = Depends(current_user)):
+    """The next page of a pitch's past games ("Load more")."""
+    return await past_games(oid(pitch_id), user, skip=max(0, skip))
 
 
 # --- Create --------------------------------------------------------------

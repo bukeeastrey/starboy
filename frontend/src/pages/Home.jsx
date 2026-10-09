@@ -55,6 +55,13 @@ export default function Home({ user, refreshUser }) {
         </section>
       )}
 
+      {data.recent_games.length > 0 && (
+        <section className="stack">
+          <h3>Your recent games</h3>
+          {data.recent_games.map((game) => <GameRow key={game.id} game={game} showPitch />)}
+        </section>
+      )}
+
       <section className="stack">
         <h3>Your pitches</h3>
         {data.pitches.length === 0 && (

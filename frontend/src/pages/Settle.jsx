@@ -102,7 +102,7 @@ export default function Settle({ user }) {
           Based on
           <select value={gameId} onChange={(e) => setGameId(e.target.value)}>
             <option value="">This pitch, all time</option>
-            {pitch.games.recent.map((game) => (
+            {pitch.games.past.filter((game) => game.status !== "cancelled").map((game) => (
               <option key={game.id} value={game.id}>One game: {game.kickoff_label}</option>
             ))}
           </select>
