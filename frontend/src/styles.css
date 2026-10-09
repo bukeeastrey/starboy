@@ -1753,6 +1753,525 @@ img.avatar {
   font-variant-numeric: tabular-nums;
 }
 
+/* --- The next game on a pitch page --------------------------------------- */
+
+.fixture {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-top: 3px solid var(--gold);
+  border-radius: 3px;
+  background:
+    radial-gradient(circle at 100% 0, transparent 0 70px, var(--line-faint) 71px 72px, transparent 73px),
+    var(--turf);
+}
+
+.fixture-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--chalk-dim);
+}
+
+.fixture > strong,
+.fixture-when {
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 1.9rem;
+  line-height: 1.05;
+  text-transform: uppercase;
+  color: var(--chalk);
+  text-decoration: none;
+}
+
+/* The clock: big scoreboard digits with small unit letters. */
+.countdown {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--chalk-dim);
+}
+
+.countdown b {
+  margin-right: 2px;
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 2.6rem;
+  line-height: 1;
+  letter-spacing: 0;
+  color: var(--gold);
+  font-variant-numeric: tabular-nums;
+}
+
+.countdown.live {
+  font-family: var(--display);
+  font-size: 2rem;
+  color: var(--gold);
+}
+
+/* The avatars of who's in, overlapping like a team photo. */
+.faces {
+  display: flex;
+  align-items: center;
+}
+
+.faces .avatar {
+  margin-right: -8px;
+  box-shadow: 0 0 0 2px var(--turf);
+}
+
+.faces-more {
+  margin-left: 14px;
+  font-weight: 700;
+  color: var(--chalk-dim);
+}
+
+.faces-count {
+  margin-left: auto;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--chalk-dim);
+}
+
+/* Leaderboard movement since last week. */
+.move {
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.move.up {
+  color: var(--gold);
+}
+
+.move.down {
+  color: var(--red);
+}
+
+.move.new {
+  padding: 2px 5px;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  color: var(--chalk-dim);
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+/* --- The match report (game page) ---------------------------------------- */
+
+/* A stadium scoreboard across the top. */
+.matchboard {
+  position: relative;
+  margin: -20px -18px 0;
+  padding: 22px 18px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+  overflow: hidden;
+  border-bottom: 1px solid var(--line);
+  background:
+    radial-gradient(circle at 50% 118%, transparent 0 128px, var(--line) 129px 130px, transparent 131px),
+    linear-gradient(90deg, transparent calc(50% - 0.5px), var(--line-faint) calc(50% - 0.5px) calc(50% + 0.5px), transparent calc(50% + 0.5px)),
+    radial-gradient(ellipse 70% 90% at 50% 0%, rgba(245, 197, 24, 0.12), transparent 70%),
+    linear-gradient(180deg, var(--turf-lit), var(--turf));
+}
+
+.matchboard-pitch {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+}
+
+.matchboard-when {
+  color: var(--chalk-dim);
+  font-size: 0.9rem;
+}
+
+.matchboard-score {
+  width: 100%;
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 10px;
+}
+
+.matchboard-score strong {
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 5.4rem;
+  line-height: 0.95;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.matchboard-score i {
+  font-style: normal;
+  color: var(--gold);
+  margin: 0 6px;
+}
+
+.side-name {
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--chalk-dim);
+}
+
+.matchboard-status {
+  margin-top: 4px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--gold);
+}
+
+.matchboard-status.big {
+  margin-top: 14px;
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 1.7rem;
+  letter-spacing: 0.02em;
+  color: var(--chalk);
+}
+
+.matchboard .countdown {
+  margin-top: 12px;
+  justify-content: center;
+}
+
+.matchboard .countdown b {
+  font-size: 3.6rem;
+}
+
+.matchboard-note {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  color: var(--chalk-dim);
+}
+
+/* The man of the match. */
+.spotlight {
+  position: relative;
+  padding: 18px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+  border: 1px solid var(--gold);
+  border-radius: 3px;
+  background: radial-gradient(ellipse 80% 70% at 50% 0%, rgba(245, 197, 24, 0.16), transparent 72%), var(--turf);
+}
+
+.spotlight-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--gold);
+}
+
+.spotlight-player {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  color: var(--chalk);
+  text-decoration: none;
+}
+
+.spotlight-player .avatar {
+  box-shadow: 0 0 0 3px var(--turf), 0 0 0 5px var(--gold);
+}
+
+.spotlight-player strong {
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 2rem;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.spotlight-like {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--gold);
+}
+
+.my-report {
+  position: relative;
+}
+
+/* A side's heading carries its goals at the end of the chalk line. */
+.side h3 b {
+  order: 3;
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 1.5rem;
+  letter-spacing: 0;
+  color: var(--chalk);
+}
+
+/* --- The back of the player card ----------------------------------------- */
+
+/* Two faces in the same spot. Turning the wrapper shows the other one. */
+.flip {
+  display: grid;
+  perspective: 1200px;
+}
+
+.flip > .player-card {
+  grid-area: 1 / 1;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  transition: transform 0.55s cubic-bezier(0.3, 0.7, 0.2, 1);
+  cursor: pointer;
+}
+
+.flip > .card-back {
+  transform: rotateY(180deg);
+}
+
+.flip.flipped > .card-front {
+  transform: rotateY(-180deg);
+}
+
+.flip.flipped > .card-back {
+  transform: rotateY(0deg);
+}
+
+.card-front,
+.card-back {
+  display: flex;
+}
+
+.card-front > .player-card-face,
+.card-back > .player-card-face {
+  flex: 1;
+}
+
+.card-back .player-card-face {
+  align-items: stretch;
+  text-align: left;
+  gap: 14px;
+  padding-top: 34px;
+}
+
+.card-name.small {
+  margin-top: 0;
+  font-size: 1.5rem;
+  text-align: center;
+}
+
+.card-back small {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 0.66rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--chalk-dim);
+}
+
+.back-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.back-block {
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.back-number {
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 2.2rem;
+  line-height: 1;
+  color: var(--gold);
+}
+
+.form-guide {
+  display: flex;
+  gap: 6px;
+}
+
+/* W, D, L: gold for a win, chalk outline for a draw, red for a loss. */
+.form-dot {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-style: normal;
+  font-size: 0.78rem;
+  font-weight: 700;
+  border: 1px solid var(--line);
+  color: var(--chalk-dim);
+}
+
+.form-dot.small {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  font-size: 0.62rem;
+}
+
+.form-dot.won {
+  background: var(--gold);
+  border-color: var(--gold);
+  color: var(--night);
+}
+
+.form-dot.draw {
+  border-color: var(--chalk);
+  color: var(--chalk);
+}
+
+.form-dot.lost {
+  background: var(--red);
+  border-color: var(--red);
+  color: var(--night);
+}
+
+.back-games {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.back-games li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.92rem;
+}
+
+.back-games a {
+  color: var(--chalk);
+  text-decoration: none;
+}
+
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.badge-pill {
+  padding: 4px 8px;
+  border: 1px solid var(--gold);
+  border-radius: 2px;
+  font-family: var(--display);
+  font-size: 0.86rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--gold);
+}
+
+/* --- Motion --------------------------------------------------------------- */
+
+/* Cards rise gently into place when a page opens, one after another. */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+.moment,
+.scoreboard,
+.fixture,
+.spotlight,
+.flip {
+  animation: rise 0.45s ease both;
+}
+
+.moment:nth-child(2),
+.scoreboard:nth-child(2) {
+  animation-delay: 0.06s;
+}
+
+.moment:nth-child(3),
+.scoreboard:nth-child(3) {
+  animation-delay: 0.12s;
+}
+
+.moment:nth-child(n + 4),
+.scoreboard:nth-child(n + 4) {
+  animation-delay: 0.18s;
+}
+
+/* The gold burst: sparks fly out from the middle of the card and fade. */
+.burst {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  width: 0;
+  height: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.burst i {
+  position: absolute;
+  left: -3px;
+  top: -3px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--gold);
+  opacity: 0;
+  animation: spark 0.95s 0.25s cubic-bezier(0.1, 0.7, 0.3, 1) forwards;
+}
+
+.burst i:nth-child(odd) {
+  width: 4px;
+  height: 10px;
+  border-radius: 2px;
+}
+
+@keyframes spark {
+  0% {
+    opacity: 1;
+    transform: rotate(var(--angle)) translateY(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(var(--angle)) translateY(calc(var(--far) * -1)) scale(0.3);
+  }
+}
+
 /* People who ask for less motion get none. */
 @media (prefers-reduced-motion: reduce) {
   *,

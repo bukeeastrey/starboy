@@ -7,6 +7,8 @@ What counts (CLAUDE.md 3.6):
 - goals, assists, wins, saves, clean sheets: CONFIRMED reports only.
 """
 
+from datetime import datetime
+
 from bson import ObjectId
 
 from .db import get_db
@@ -185,6 +187,40 @@ async def leaderboards(pitch_id: ObjectId, limit: int = 10) -> dict:
     players = await pitch_players(pitch_id)
     winners = sorted((p for p in players if p["motm"] > 0), key=lambda p: (-p["motm"], p["name"]))
     boards["most_motm"] = winners[:limit]
+    return boards
+
+
+def position_on(board_stat: str, totals: dict, user_id) -> int | None:
+    """A player's place on a board, where equal numbers share a place
+    (3 players on 5 goals are all 1st). None if they aren't on it."""
+    mine = totals.get(user_id, {}).get(board_stat, 0)
+    if mine <= 0:
+        return None
+    return 1 + sum(1 for row in totals.values() if row.get(board_stat, 0) > mine)
+
+
+async def add_movement(pitch_id: ObjectId, boards: dict, since: datetime) -> dict:
+    """Add "move" to every leaderboard row: how many places the player has
+    climbed (+) or dropped (-) since `since`, 0 for no change, or "new" if
+    they weren't on that board back then.
+
+    The places are compared with ties sharing a place, so two players level
+    on goals never show an arrow just because of how a tie was ordered."""
+    async def snapshot(match: dict) -> dict:
+        totals = await totals_by_player(match)
+        for user_id, count in (await motm_by_player(match)).items():
+            totals.setdefault(user_id, dict(ZERO_STATS))["motm"] = count
+        return totals
+
+    now_totals = await snapshot({"game.pitch_id": pitch_id})
+    old_totals = await snapshot({"game.pitch_id": pitch_id, "game.kickoff_at": {"$lt": since}})
+
+    for board, stat in BOARDS:
+        for row in boards.get(board, []):
+            user_id = ObjectId(row["id"])
+            before = position_on(stat, old_totals, user_id)
+            after = position_on(stat, now_totals, user_id)
+            row["move"] = "new" if before is None else (before - after if after else 0)
     return boards
 
 

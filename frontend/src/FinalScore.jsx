@@ -5,6 +5,9 @@ import { ErrorNote } from "./components.jsx";
 // The final score is entered ONCE, by whoever set the game up. They also say
 // who was on their side; everyone else was on the other side. Each player's
 // win, loss or draw (and the Most Wins leaderboard) comes from this.
+//
+// This component is only the entering part. The score itself is shown in the
+// scoreboard at the top of the game page.
 export default function FinalScore({ game, me, onSaved }) {
   const saved = game.result;
   const [editing, setEditing] = useState(false);
@@ -14,6 +17,7 @@ export default function FinalScore({ game, me, onSaved }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
+  if (!game.can_set_result) return null;
   const others = game.players.in.filter((player) => player.id !== me.id);
 
   function toggle(playerId) {
@@ -40,28 +44,11 @@ export default function FinalScore({ game, me, onSaved }) {
     setBusy(false);
   }
 
-  // Everyone sees the score once it's in. Only the creator can enter or change it.
   if (!editing) {
-    if (saved) {
-      const mine = { won: "You won", lost: "You lost", draw: "Draw" }[saved.my_result];
-      return (
-        <section className="scoreline">
-          <span className="scoreline-label">Full time</span>
-          <strong className="scoreline-score">
-            {saved.my_score.us}<i>–</i>{saved.my_score.them}
-          </strong>
-          <span className="scoreline-label">{game.my_status === "in" ? mine : ""}</span>
-          {game.can_set_result && (
-            <button className="link-button" onClick={() => setEditing(true)}>Change</button>
-          )}
-        </section>
-      );
-    }
-    if (!game.can_set_result) return null;
-    return (
-      <button className="button gold big" onClick={() => setEditing(true)}>
-        Enter the final score
-      </button>
+    return saved ? (
+      <button className="link-button" onClick={() => setEditing(true)}>Change the score or the sides</button>
+    ) : (
+      <button className="button gold big" onClick={() => setEditing(true)}>Enter the final score</button>
     );
   }
 

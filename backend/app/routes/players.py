@@ -3,7 +3,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
-from .. import consensus, stats
+from .. import consensus, results, settle, stats
 from ..auth import current_user
 from ..db import get_db
 from ..util import format_kickoff, oid, public_user
@@ -35,6 +35,30 @@ async def player_profile(user_id: str, me: dict = Depends(current_user)):
         {"$unwind": "$pitch"},
     ]).to_list(None)
 
+    # For the back of the card. Each recent game's result comes from the
+    # game's final score when there is one (see results.result_for).
+    for claim in recent:
+        claim["result"], claim["score"] = results.result_for(claim["game"], user["_id"], claim["stats"])
+    confirmed_recent = [claim for claim in recent if claim["status"] == "confirmed"]
+
+    def game_rating(claim: dict) -> float:
+        """A simple score for "best game": goals count most, then assists."""
+        s = claim["stats"]
+        return ((s.get("goals") or 0) * 3 + (s.get("assists") or 0) * 2 + (s.get("saves") or 0) * 0.5
+                + (2 if s.get("clean_sheet") else 0) + (1 if claim["result"] == "won" else 0))
+
+    best = max(confirmed_recent, key=game_rating, default=None)
+    if best and game_rating(best) <= 0:
+        best = None
+
+    # Every legend they have ever "played like", most often first.
+    badges = await db.claims.aggregate([
+        {"$match": {"user_id": user["_id"], "status": {"$ne": "disputed"}, "played_like.name": {"$ne": None}}},
+        {"$group": {"_id": "$played_like.name", "times": {"$sum": 1}, "last": {"$max": "$created_at"}}},
+        {"$sort": {"times": -1, "last": -1}},
+    ]).to_list(None)
+    all_reports = await settle.confirmed_reports(user["_id"], {})
+
     # Pitches they're registered at (for "Settle it" and the profile header).
     registrations = await db.registrations.find({"user_id": user["_id"]}).to_list(None)
     pitches = await db.pitches.find(
@@ -50,6 +74,15 @@ async def player_profile(user_id: str, me: dict = Depends(current_user)):
         "played_like": next((claim["played_like"] for claim in recent
                              if (claim.get("played_like") or {}).get("name")), None),
         "pitches": [{"id": str(p["_id"]), "name": p["name"]} for p in pitches],
+        # The back of the card.
+        "form": [claim["result"] for claim in confirmed_recent[:5]],  # newest first: "won"/"draw"/"lost"/None
+        "streak": settle.totals(all_reports)["streak"],
+        "best_game": best and {
+            "game_id": str(best["game"]["_id"]),
+            "label": f"{best['pitch']['name']} · {format_kickoff(best['game']['kickoff_at']).split(',')[0]}",
+            "stats": best["stats"],
+        },
+        "badges": [{"name": badge["_id"], "times": badge["times"]} for badge in badges],
         "recent_games": [
             {
                 "game_id": str(claim["game"]["_id"]),
@@ -58,6 +91,7 @@ async def player_profile(user_id: str, me: dict = Depends(current_user)):
                 "stats": claim["stats"],
                 "played_like": claim.get("played_like"),
                 "status": claim["status"],
+                "result": claim["result"],
             }
             for claim in recent
         ],

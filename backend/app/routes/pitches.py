@@ -1,5 +1,7 @@
 """Pitches: list them, add one, register at one, see who plays there."""
 
+from datetime import timedelta
+
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from pymongo.errors import DuplicateKeyError
@@ -7,7 +9,7 @@ from pymongo.errors import DuplicateKeyError
 from .. import moments, photos, stats
 from ..auth import current_user
 from ..db import get_db
-from ..util import now, oid
+from ..util import now, oid, public_user
 
 router = APIRouter(prefix="/api")
 
@@ -92,14 +94,29 @@ async def get_pitch(pitch_id: str, user: dict = Depends(current_user)):
 
     players = await stats.pitch_players(pitch["_id"])
     my_id = str(user["_id"])
+    games = await pitch_games(pitch["_id"], user)
+
+    # The next game, with the faces of who's in (for the countdown card).
+    next_game = games["upcoming"][0] if games["upcoming"] else None
+    if next_game:
+        game = await db.games.find_one({"_id": oid(next_game["id"])})
+        in_ids = [invite["user_id"] for invite in game["invites"] if invite["status"] == "in"]
+        in_users = await db.users.find({"_id": {"$in": in_ids}}).to_list(None)
+        next_game = {**next_game, "in_players": [public_user(u) for u in in_users]}
+
+    # Arrows on the leaderboards: where everyone stood a week ago.
+    boards = await stats.leaderboards(pitch["_id"])
+    boards = await stats.add_movement(pitch["_id"], boards, now() - timedelta(days=7))
+
     return {
         **pitch_view(pitch),
         "player_count": len(players),
         "registered": any(player["id"] == my_id for player in players),
         "players": players,
-        "leaderboards": await stats.leaderboards(pitch["_id"]),
+        "leaderboards": boards,
         "moments": await moments.feed(pitch["_id"], user),
-        "games": await pitch_games(pitch["_id"], user),
+        "games": games,
+        "next_game": next_game,
     }
 
 

@@ -1,12 +1,13 @@
 import { useRef, useState } from "react";
 import { api } from "../api.js";
 import { Avatar, ErrorNote, Loading, PlayerName, useLoad } from "../components.jsx";
-import { GameRow, whatsappLink } from "../game-parts.jsx";
+import { GameRow, RsvpButtons, whatsappLink } from "../game-parts.jsx";
 import Moments from "../Moments.jsx";
+import { Countdown, CountUp } from "../motion.jsx";
 import { stockCover, uploadPhoto } from "../photos.js";
 import { Link } from "../router.jsx";
 
-const TABS = ["Games", "Players", "Leaderboards"];
+const TABS = ["Leaderboards", "Players", "Games"];
 
 // The four boards: key from the API, title, the stat shown, its unit.
 const BOARDS = [
@@ -27,7 +28,7 @@ const SORTS = [
 
 export default function Pitch({ id, user }) {
   const { data: pitch, error, reload } = useLoad(() => api(`/api/pitches/${id}`), [id]);
-  const [tab, setTab] = useState("Games");
+  const [tab, setTab] = useState("Leaderboards");
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState("");
   const coverPicker = useRef(null);
@@ -89,6 +90,8 @@ export default function Pitch({ id, user }) {
       </header>
       <ErrorNote error={actionError} />
 
+      <NextGame pitch={pitch} onChange={reload} />
+
       <Moments moments={pitch.moments} />
 
       <nav className="tabs">
@@ -108,6 +111,53 @@ export default function Pitch({ id, user }) {
       {tab === "Leaderboards" && <LeaderboardsTab pitch={pitch} />}
     </div>
   );
+}
+
+// The next game at this pitch: a live countdown, the faces of who's in, and
+// your answer. With no game set, it invites you to start one.
+function NextGame({ pitch, onChange }) {
+  const game = pitch.next_game;
+  if (!game) {
+    return (
+      <section className="fixture empty">
+        <span className="fixture-label">Next game</span>
+        <strong>Nothing set yet</strong>
+        <Link to={`/pitch/${pitch.id}/new-game`} className="button gold">Na you go start am: new game</Link>
+      </section>
+    );
+  }
+
+  const faces = game.in_players.slice(0, 7);
+  const more = game.in_players.length - faces.length;
+  return (
+    <section className="fixture">
+      <span className="fixture-label">{game.phase === "live" ? "Playing now" : "Next game"}</span>
+      <Link to={`/game/${game.id}`} className="fixture-when">{game.kickoff_label}</Link>
+      {game.phase !== "live" && <Countdown to={game.kickoff_at} />}
+
+      <div className="faces">
+        {faces.map((player) => <Avatar key={player.id} user={player} size={38} />)}
+        {more > 0 && <span className="faces-more">+{more}</span>}
+        <span className="faces-count">{game.in_count} in</span>
+      </div>
+      {game.note && <p className="muted">{game.note}</p>}
+
+      {game.my_status === "in" ? (
+        <Link to={`/game/${game.id}`} className="button secondary">You're in. Open the game</Link>
+      ) : (
+        <RsvpButtons game={game} onDone={onChange} />
+      )}
+    </section>
+  );
+}
+
+// An arrow showing how far a player moved on a board since last week.
+function Move({ move }) {
+  if (move === "new") return <span className="move new">New</span>;
+  if (!move) return null;
+  return move > 0
+    ? <span className="move up" aria-label={`Up ${move}`}>▲{move}</span>
+    : <span className="move down" aria-label={`Down ${-move}`}>▼{-move}</span>;
 }
 
 function GamesTab({ pitch }) {
@@ -213,7 +263,8 @@ function LeaderboardsTab({ pitch }) {
                 <Link to={`/player/${player.id}`} className="row-text">
                   <PlayerName user={player} />
                 </Link>
-                <strong className="board-number">{player[stat]}</strong>
+                <Move move={player.move} />
+                <strong className="board-number"><CountUp value={Math.round(player[stat])} /></strong>
               </li>
             ))}
           </ol>

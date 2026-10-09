@@ -60,3 +60,12 @@ def test_leaderboards(results):
     # Game 2's vote was a tie, so only games 1 and 3 have a Man of the Match.
     assert [(row["name"], row["motm"]) for row in boards["most_motm"]] == [("Bayo Ogun", 1), ("Tunde Bello", 1)]
     assert "phone" not in str(boards)
+
+
+def test_places_share_ties():
+    from app.stats import position_on
+    totals = {"a": {"goals": 5}, "b": {"goals": 3}, "c": {"goals": 3}, "d": {"goals": 0}}
+    assert position_on("goals", totals, "a") == 1
+    assert position_on("goals", totals, "b") == 2 and position_on("goals", totals, "c") == 2
+    assert position_on("goals", totals, "d") is None      # no goals = not on the board
+    assert position_on("goals", totals, "nobody") is None
