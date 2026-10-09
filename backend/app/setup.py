@@ -26,6 +26,7 @@ async def ensure_indexes() -> None:
     # One report per player per game (the first field also serves "by game").
     await db.claims.create_index([("game_id", 1), ("user_id", 1)], unique=True)
     await db.claims.create_index([("user_id", 1), ("status", 1)])
+    await db.photos.create_index([("game_id", 1), ("created_at", -1)])
 
 
 async def seed_pitches() -> None:

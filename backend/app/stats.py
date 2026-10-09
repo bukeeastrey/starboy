@@ -93,6 +93,11 @@ _PUBLIC_USER = {
     "name": "$user.name",
     "nickname": {"$ifNull": ["$user.nickname", ""]},
     "position": {"$ifNull": ["$user.position", "Anywhere"]},
+    "photo": {"$cond": [
+        {"$ifNull": ["$user.avatar_photo_id", False]},
+        {"$concat": ["/api/photos/", {"$toString": "$user.avatar_photo_id"}, "/thumb"]},
+        None,
+    ]},
 }
 
 

@@ -3,6 +3,7 @@ import { api } from "../api.js";
 import { Avatar, ErrorNote, Loading, PlayerName, useLoad } from "../components.jsx";
 import { MedalIcon } from "../Crest.jsx";
 import FinalScore from "../FinalScore.jsx";
+import Gallery from "../Gallery.jsx";
 import { PlayedLike, RsvpButtons, inviteMessage, statLine, whatsappLink } from "../game-parts.jsx";
 import { Link } from "../router.jsx";
 
@@ -128,6 +129,8 @@ export default function Game({ id, user }) {
           )}
         </section>
       )}
+
+      {!cancelled && <Gallery game={game} onChange={reload} />}
 
       {game.claims.length > 0 && (
         <section className="stack">

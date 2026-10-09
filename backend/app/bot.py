@@ -13,7 +13,7 @@ from bson import ObjectId
 from bson.errors import InvalidId
 from fastapi import HTTPException
 
-from . import consensus, jobs, notify, stats, tapflow, telegram
+from . import consensus, jobs, notify, photos, stats, tapflow, telegram
 from .config import AUDIO_DIR, settings
 from .db import get_db
 from .routes.games import game_phase, invite_of, set_rsvp
@@ -31,7 +31,8 @@ HELP = (
     "/report: tell me how your last game went\n"
     "/leaderboard: top players at your pitch\n"
     "/help: this message\n\n"
-    "After a game, just send me a <b>voice note</b>: the score, your goals, your assists."
+    "After a game, send me a <b>voice note</b> about how you played, "
+    "or a <b>photo</b> for the match gallery."
 )
 SORRY = "I couldn't make that out. Try another voice note or type it 🙏"
 
@@ -74,6 +75,10 @@ async def on_message(message: dict) -> None:
     if not user:
         await telegram.send(chat_id, f"Welcome to Star Boy! ⭐ Sign up here: {site()}, "
                                      "then tap <b>Connect Telegram</b>.")
+        return
+
+    if message.get("photo"):
+        await on_photo(user, chat_id, message["photo"])
         return
 
     voice = message.get("voice") or message.get("audio")
@@ -313,6 +318,77 @@ async def reply_when_done(job: dict) -> None:
     await telegram.send(chat_id, "\n".join(lines), buttons)
 
 
+# --- Match photos ------------------------------------------------------------
+
+def pick_sizes(sizes: list[dict]) -> tuple[str, str]:
+    """Telegram sends each photo in several sizes. Returns the file ids of
+    (the mid-size one for the gallery, a small one for thumbnails)."""
+    by_size = sorted(sizes, key=lambda s: max(s["width"], s["height"]))
+    side = lambda s: max(s["width"], s["height"])  # noqa: E731
+    # The biggest one that is still mid-size (500 to 1000 px); if there is no
+    # such size, the biggest there is.
+    full = next((s for s in reversed(by_size) if 500 <= side(s) <= 1000), by_size[-1])
+    thumb = next((s for s in by_size if side(s) >= 300), by_size[-1])
+    if side(thumb) > side(full):
+        thumb = full
+    return full["file_id"], thumb["file_id"]
+
+
+async def on_photo(user: dict, chat_id: int, sizes: list[dict]) -> None:
+    """A photo arrived: put it in the gallery of the game it is from."""
+    full_id, thumb_id = pick_sizes(sizes)
+    games = await reportable_games(user, only_unreported=False)
+    if not games:
+        await telegram.send(chat_id, "Nice one! But I don't see a game of yours from this week "
+                                     "to put it in. Mark yourself “in” on a game first.")
+    elif len(games) == 1:
+        await add_match_photo(user, chat_id, games[0], full_id, thumb_id)
+    else:
+        # Keep the photo's ids, ask which game, continue on the tap.
+        await get_db().bot_state.update_one(
+            {"_id": chat_id},
+            {"$set": {"pending_photo": {"full": full_id, "thumb": thumb_id},
+                      "expires_at": now() + notify.AWAITING_REPORT_FOR}},
+            upsert=True,
+        )
+        rows = [[(label, action.replace("g:", "pg:", 1))] for [(label, action)] in await game_choice_buttons(games)]
+        await telegram.send(chat_id, "Which game is this photo from?", rows)
+
+
+async def add_match_photo(user: dict, chat_id: int, game: dict, full_id: str, thumb_id: str) -> None:
+    db = get_db()
+    if await db.photos.count_documents({"kind": "game", "game_id": game["_id"]}) >= photos.MAX_PER_GAME:
+        await telegram.send(chat_id, "That game's gallery is full already.")
+        return
+    full, thumb = await telegram.fetch(full_id), await telegram.fetch(thumb_id)
+    if not full or not thumb:
+        await telegram.send(chat_id, "I couldn't get that photo. Send it again?")
+        return
+    try:
+        await photos.save("game", user["_id"], full, thumb, game_id=game["_id"],
+                          pitch_id=game["pitch_id"], source="telegram")
+    except HTTPException as error:
+        await telegram.send(chat_id, str(error.detail))
+        return
+    pitch = await notify.pitch_of(game)
+    await telegram.send(chat_id, f"Added to the gallery for <b>{escape(pitch['name'])}</b>, "
+                                 f"{format_kickoff(game['kickoff_at'])}.",
+                        notify.open_button(f"/game/{game['_id']}", "Open game"))
+
+
+async def tap_photo_game(user, chat_id, message_id, game_id) -> str:
+    db = get_db()
+    state = await db.bot_state.find_one({"_id": chat_id}) or {}
+    pending = state.get("pending_photo")
+    game = await db.games.find_one({"_id": object_id(game_id)})
+    if not pending or not game:
+        return "That one has expired. Send the photo again."
+    await db.bot_state.update_one({"_id": chat_id}, {"$unset": {"pending_photo": ""}})
+    await telegram.edit(chat_id, message_id, "Got it.")
+    await add_match_photo(user, chat_id, game, pending["full"], pending["thumb"])
+    return ""
+
+
 # --- Button taps -------------------------------------------------------------
 
 def object_id(value: str) -> ObjectId | None:
@@ -343,6 +419,8 @@ async def on_tap(tap: dict) -> None:
             toast = await tap_game(user, chat_id, message_id, rest)
         elif action == "ok":  # "Looks right ✅" under "Here's what I heard"
             toast = await tap_looks_right(user, chat_id, message_id, old_text, rest)
+        elif action == "pg":  # picked which game a photo belongs to
+            toast = await tap_photo_game(user, chat_id, message_id, rest)
         elif action == "ts":  # "Tap my stats 📋": start the button flow for a game
             toast = await tapflow.start(user, chat_id, message_id, object_id(rest))
         elif action == "t":  # a button inside that flow

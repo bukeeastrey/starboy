@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from pydantic import BaseModel
 
-from .. import notify, results, summary
+from .. import notify, photos, results, summary
 from ..auth import current_user
 from ..config import settings
 from ..consensus import players_in, required_confirms
@@ -254,6 +254,8 @@ async def get_game(game_id: str, user: dict = Depends(current_user)):
         "can_set_result": (game["created_by"] == user["_id"] and game["status"] != "cancelled"
                            and card["phase"] != "upcoming"),
         "motm": by_id.get(motm_id),
+        "photos": await photos.game_gallery(game, user, by_id),
+        "can_add_photos": i_was_in or game["created_by"] == user["_id"],
         "summary": game.get("summary") and {"text": game["summary"]["text"]},
         # After kickoff, players who were in can tell Star Boy how it went.
         "can_report": (game["status"] != "cancelled" and card["phase"] != "upcoming" and i_was_in),

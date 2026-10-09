@@ -30,6 +30,9 @@ def public_user(user: dict) -> dict:
         "name": user["name"],
         "nickname": user.get("nickname", ""),
         "position": user.get("position", "Anywhere"),
+        # Their profile photo (a small version), if they uploaded one.
+        "photo": (f"/api/photos/{user['avatar_photo_id']}/thumb"
+                  if user.get("avatar_photo_id") else None),
     }
 
 

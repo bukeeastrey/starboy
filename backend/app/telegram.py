@@ -113,6 +113,22 @@ async def download(file_id: str, destination: Path) -> bool:
         return False
 
 
+async def fetch(file_id: str) -> bytes | None:
+    """The bytes of a file someone sent the bot (a photo), or None."""
+    info = await call("getFile", file_id=file_id)
+    if not info or "file_path" not in info:
+        return None
+    url = f"{API}/file/bot{settings.telegram_bot_token}/{info['file_path']}"
+    try:
+        async with httpx.AsyncClient(timeout=60) as client:
+            response = await client.get(url)
+            response.raise_for_status()
+        return response.content
+    except Exception as error:
+        log.warning("Telegram file download failed: %s", type(error).__name__)
+        return None
+
+
 async def username() -> str | None:
     """The bot's @username (without the @), for t.me links."""
     global _username

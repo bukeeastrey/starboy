@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { api } from "../api.js";
 import { Avatar, ErrorNote, Loading, PlayerName, useLoad } from "../components.jsx";
 import { GameRow, whatsappLink } from "../game-parts.jsx";
+import { stockCover, uploadPhoto } from "../photos.js";
 import { Link } from "../router.jsx";
 
 const TABS = ["Games", "Players", "Leaderboards"];
@@ -28,6 +29,7 @@ export default function Pitch({ id, user }) {
   const [tab, setTab] = useState("Games");
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState("");
+  const coverPicker = useRef(null);
 
   async function register() {
     setBusy(true);
@@ -41,19 +43,43 @@ export default function Pitch({ id, user }) {
     setBusy(false);
   }
 
+  // Any registered player can set or replace the pitch's cover photo.
+  async function changeCover(event) {
+    const file = event.target.files[0];
+    event.target.value = "";
+    if (!file) return;
+    setBusy(true);
+    setActionError("");
+    try {
+      await uploadPhoto(`/api/pitches/${id}/cover`, file);
+      await reload();
+    } catch (err) {
+      setActionError(err.message);
+    }
+    setBusy(false);
+  }
+
   if (error) return <ErrorNote error={error} />;
   if (!pitch) return <Loading />;
 
   return (
     <div className="stack">
-      <header className="pitch-header">
+      <header className="pitch-header has-cover">
+        {/* The crew's own photo of the pitch, or a stock one until they add it. */}
+        <img className="cover-photo" src={pitch.cover?.full ?? stockCover(pitch.id)} alt="" />
         <h2>{pitch.name}</h2>
         {pitch.area && <p>{pitch.area}</p>}
         {pitch.maps_url && (
           <a href={pitch.maps_url} target="_blank" rel="noreferrer"> Open in Maps</a>
         )}
         {pitch.registered ? (
-          <span className="chip gold">Registered</span>
+          <span className="cover-actions">
+            <span className="chip gold">Registered</span>
+            <button className="link-button" onClick={() => coverPicker.current.click()} disabled={busy}>
+              {busy ? "Sending…" : pitch.cover ? "Change photo" : "Add a photo of this pitch"}
+            </button>
+            <input ref={coverPicker} type="file" accept="image/*" hidden onChange={changeCover} />
+          </span>
         ) : (
           <button className="button gold" onClick={register} disabled={busy}>
             {busy ? "Registering…" : "Register at this pitch"}

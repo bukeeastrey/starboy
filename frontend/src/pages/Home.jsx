@@ -1,6 +1,7 @@
 import { api } from "../api.js";
 import { ErrorNote, Loading, useLoad } from "../components.jsx";
 import { GameRow, RsvpButtons, StatusChip } from "../game-parts.jsx";
+import { stockCover } from "../photos.js";
 import { Link } from "../router.jsx";
 import TelegramCard from "../TelegramCard.jsx";
 
@@ -72,7 +73,10 @@ export default function Home({ user, refreshUser }) {
 export function PitchRow({ pitch }) {
   return (
     <Link to={`/pitch/${pitch.id}`} className="card row">
-      <span className="row-icon"></span>
+      <img
+        className="row-cover" src={pitch.cover?.thumb ?? stockCover(pitch.id)} alt=""
+        loading="lazy" decoding="async"
+      />
       <span className="row-text">
         <strong>{pitch.name}</strong>
         <span className="muted">

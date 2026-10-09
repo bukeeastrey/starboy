@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { api } from "./api.js";
 import { Avatar, Loading } from "./components.jsx";
 import { Wordmark } from "./Crest.jsx";
+import { PHOTO_CREDITS } from "./photos.js";
 import { Link, matchRoute, navigate, usePath } from "./router.jsx";
 import Game from "./pages/Game.jsx";
 import Home from "./pages/Home.jsx";
@@ -110,6 +111,8 @@ export default function App() {
       <main className="main">{screen}</main>
       <footer className="badge">
         AI: Gemma + Whisper, open-weight models
+        <br />
+        Stock photos: {PHOTO_CREDITS} / Pexels
       </footer>
     </div>
   );

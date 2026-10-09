@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from pymongo.errors import DuplicateKeyError
 
-from .. import stats
+from .. import photos, stats
 from ..auth import current_user
 from ..db import get_db
 from ..util import now, oid
@@ -26,6 +26,8 @@ def pitch_view(pitch: dict) -> dict:
         "maps_url": pitch.get("maps_url", ""),
         "player_count": pitch.get("player_count", 0),
         "registered": pitch.get("registered", False),
+        # None = no photo from the crew yet; the app then shows a stock one.
+        "cover": photos.urls(pitch["cover_photo_id"]) if pitch.get("cover_photo_id") else None,
     }
 
 

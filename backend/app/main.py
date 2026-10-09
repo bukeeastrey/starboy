@@ -10,7 +10,7 @@ from fastapi.responses import FileResponse
 from . import bot, db, jobs, llm, prompts, scheduler, setup
 from . import pipeline, summary  # noqa: F401  (importing them registers their AI jobs)
 from .config import AUDIO_DIR, FRONTEND_DIST, settings
-from .routes import games, home, pitches, players, reports, settle, telegram, users
+from .routes import games, home, photos, pitches, players, reports, settle, telegram, users
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
 # httpx logs every address it calls, and Telegram addresses contain the bot
@@ -67,6 +67,7 @@ app.include_router(players.router)
 app.include_router(home.router)
 app.include_router(telegram.router)
 app.include_router(settle.router)
+app.include_router(photos.router)
 
 
 @app.get("/api/health")
@@ -86,5 +87,12 @@ async def frontend(path: str):
     # inside the React app (e.g. /game/123), so it gets index.html.
     file = (FRONTEND_DIST / path).resolve()
     if file.is_file() and file.is_relative_to(FRONTEND_DIST):
+        # Built JS/CSS files have a fingerprint in their name, and the photos
+        # never change: browsers may keep both for a long time. This saves the
+        # free server's small data allowance.
+        if path.startswith("assets/"):
+            return FileResponse(file, headers={"Cache-Control": "public, max-age=31536000, immutable"})
+        if path.startswith("img/"):
+            return FileResponse(file, headers={"Cache-Control": "public, max-age=2592000"})
         return FileResponse(file)
     return FileResponse(FRONTEND_DIST / "index.html")
